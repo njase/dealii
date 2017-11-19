@@ -76,7 +76,10 @@ namespace internal
   };
 
 
-
+  //SAUR QUESTION
+  // The description says it evaluates even for non-symmetric case.
+  // But it does not..thats what I am supposed to do...or does this mean
+  // something else?
   /**
    * This struct performs the evaluation of function values, gradients and
    * Hessians for tensor-product finite elements. The operation is used for
@@ -93,6 +96,28 @@ namespace internal
    * transformed to a collocation space and can then use the identity in these
    * spaces), which both allow for shorter code.
    *
+   *
+   * @TBD: Actually this struct performs evaluation for an arbitrary quadrilateral
+   * element (general Lagrangian element in 1/2/3 dimensions) with same basis
+   * functions in each dimension and same quadrature points (n_q_points_1d)
+   * in each dimension.
+   *
+   * This class has following template parameters:
+   *
+   * @param type Tensor product form for the FE. See ElementType in fe_evaluation.h
+   *
+   * @param dim Dimension in which this class is to be used
+   *
+   * @param fe_degree (Polynomial) Degree of the Finite Element. The same degree
+   * is assumed in each direction
+   *
+   * @param n_q_points_1d Number of Quadrature points in each directions
+   *
+   * @param n_components Number of vector components when solving a system of
+   * PDEs.
+   *
+   * @param Number Number format, usually @p double or @p float
+   *
    * @author Katharina Kormann, Martin Kronbichler, 2012, 2014, 2017
    */
   template <MatrixFreeFunctions::ElementType type, int dim, int fe_degree,
@@ -100,44 +125,69 @@ namespace internal
   struct FEEvaluationImpl
   {
     static
-    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
-                   VectorizedArray<Number> *values_dofs_actual[],
-                   VectorizedArray<Number> *values_quad[],
-                   VectorizedArray<Number> *gradients_quad[][dim],
-                   VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2],
-                   VectorizedArray<Number> *scratch_data,
-                   const bool               evaluate_values,
-                   const bool               evaluate_gradients,
-                   const bool               evaluate_hessians);
+    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info, //in
+                   VectorizedArray<Number> *values_dofs_actual[], //in
+                   VectorizedArray<Number> *values_quad[], //out
+                   VectorizedArray<Number> *gradients_quad[][dim], //out
+                   VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2], //out
+                   VectorizedArray<Number> *scratch_data, //out
+                   const bool               evaluate_values, //in
+                   const bool               evaluate_gradients, //in
+                   const bool               evaluate_hessians); //in
 
     static
-    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
-                    VectorizedArray<Number> *values_dofs_actual[],
-                    VectorizedArray<Number> *values_quad[],
-                    VectorizedArray<Number> *gradients_quad[][dim],
-                    VectorizedArray<Number> *scratch_data,
-                    const bool               evaluate_values,
-                    const bool               evaluate_gradients);
+    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info, //in
+                    VectorizedArray<Number> *values_dofs_actual[], //in
+                    VectorizedArray<Number> *values_quad[], //out
+                    VectorizedArray<Number> *gradients_quad[][dim], //out
+                    VectorizedArray<Number> *scratch_data, //out
+                    const bool               evaluate_values, //in
+                    const bool               evaluate_gradients); //in
   };
 
 
+  /**
+   * Function which performs actual evaluation of a function, and/or its derivative
+   * and/or its second derivative on all the quadrature points of the unit cell. It utilizes
+   * the tensor product structure of the basis functions, and their derivatives for computationally
+   * efficient evaluation.
+   *
+   * @in shape_info The 1-D shape functions evaluated on the quadrature points along 1-D
+   * @in values_dofs_actual The function values at the local degrees of freedom. This can be
+   * 	imagined as a PxQ matrix where P = number of components in the vector valued problem
+   * 	and Q = number of local dofs
+   * @in evaluate_values A flag to indicate that Function values have to be evaluated on
+   * 	all quadrature points
+   * @in evaluate_gradients A flag to indicate that gradients have to be evaluated
+   * 	on all quadrature points
+   * @in evaluate_hessians A flag to indicate that hessian values have to be evaluated
+   * 	on all quadrature points
+   * @out values_quad The evaluation result of function values, for all components
+   * @out gradients_quad The evaluation result of function gradients, for all components
+   * @out hessians_quad The evaluation result of hessians, for all components
+   * @out scratch_data TBD
+   */
   template <MatrixFreeFunctions::ElementType type, int dim, int fe_degree,
             int n_q_points_1d, int n_components, typename Number>
   inline
   void
   FEEvaluationImpl<type,dim,fe_degree,n_q_points_1d,n_components,Number>
-  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
-              VectorizedArray<Number> *values_dofs_actual[],
-              VectorizedArray<Number> *values_quad[],
-              VectorizedArray<Number> *gradients_quad[][dim],
-              VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2],
-              VectorizedArray<Number> *scratch_data,
-              const bool               evaluate_values,
-              const bool               evaluate_gradients,
-              const bool               evaluate_hessians)
+  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info, //in
+              VectorizedArray<Number> *values_dofs_actual[], //in
+              VectorizedArray<Number> *values_quad[], //out
+              VectorizedArray<Number> *gradients_quad[][dim], //out
+              VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2], //out
+              VectorizedArray<Number> *scratch_data, //out
+              const bool               evaluate_values, //in
+              const bool               evaluate_gradients, //in
+              const bool               evaluate_hessians) //in
   {
     if (evaluate_values == false && evaluate_gradients == false && evaluate_hessians == false)
+    {
+        Assert(evaluate_values == false && evaluate_gradients == false && evaluate_hessians == false,
+               ExcInternalError());
       return;
+    }
 
     const EvaluatorVariant variant =
       EvaluatorSelector<type,(fe_degree+n_q_points_1d>4)>::variant;
@@ -162,6 +212,10 @@ namespace internal
         temp1 = scratch_data;
         temp2 = temp1 + std::max(Utilities::fixed_power<dim>(shape_info.fe_degree+1),
                                  Utilities::fixed_power<dim>(shape_info.n_q_points_1d));
+        /* Can better write as:
+        temp2 = temp1 + Utilities::fixed_power<dim>(std::max(shape_info.fe_degree+1,
+                                                        shape_info.n_q_points_1d));
+        */
       }
     else
       {
@@ -173,6 +227,8 @@ namespace internal
     VectorizedArray<Number> *expanded_dof_values[n_components];
     if (type == MatrixFreeFunctions::truncated_tensor)
       {
+    	//Move the above declaration here for clarity
+    	//VectorizedArray<Number> *expanded_dof_values[n_components];
         values_dofs = expanded_dof_values;
         for (unsigned int c=0; c<n_components; ++c)
           expanded_dof_values[c] = scratch_data+2*(std::max(shape_info.dofs_per_component_on_cell,

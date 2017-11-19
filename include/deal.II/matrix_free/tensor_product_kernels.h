@@ -68,6 +68,10 @@ namespace internal
   template <int dim, int fe_degree, int n_q_points_1d, typename Number>
   struct EvaluatorTensorProduct<evaluate_general,dim,fe_degree,n_q_points_1d,Number>
   {
+	  //SAUR COMMENT
+	  //These two static variables are peculiar: i) They are not used by implementations in this class.
+	  // They are used by evaluation_kernels! iii) They are inplace calculated in operators.h without using
+	  //these variables....things should preferably be common...need to keep in mind
     static const unsigned int dofs_per_cell = Utilities::fixed_int_power<fe_degree+1,dim>::value;
     static const unsigned int n_q_points = Utilities::fixed_int_power<n_q_points_1d,dim>::value;
 
