@@ -23,6 +23,9 @@ DEAL_II_NAMESPACE_OPEN
 
 //SAUR COMMENT
 //Does this behave as Factory design pattern?
+//As I understood, the fallback mechanism using Factory is currently not used by SelectEvaluator.
+//SelectEvaluator has specialized template implementations for selecting FEEvaluationImpl
+//Dont know the reason why this is unused (or not implemented maybe?)
 
 #ifndef DOXYGEN
 namespace
