@@ -28,6 +28,71 @@ DEAL_II_NAMESPACE_OPEN
 
 namespace internal
 {
+
+	//New additions. There may be better place for them, currently this is their home
+	//TODO:
+	//I would like to have traits for something like FESystem<dim>, but that seems bit difficult
+	//Right now focus on RT
+
+
+	enum class QuadPolicy
+	{
+		equals_fe_degree,
+
+		fe_degree_plus_one,
+
+		no_policy // Not designed yet !!
+	};
+
+
+	///////some traits
+	template <typename T, int dim>
+	struct get_n_comp
+	{
+		static constexpr int n_components = 1;
+	};
+
+
+	template <int dim>
+	struct get_n_comp<FE_RaviartThomas<dim>,dim>
+	{
+		static constexpr int n_components = dim+1;
+	};
+
+
+	//Get quad points in 1D from quad policy and FE degree in that direction
+	template <QuadPolicy T, int fe_degree>
+	struct get_quad_1d
+	{
+		static constexpr int n_q_points_1d = fe_degree;
+	};
+
+	template <int fe_degree>
+	struct get_quad_1d<QuadPolicy::fe_degree_plus_one, fe_degree>
+	{
+		static constexpr int n_q_points_1d = fe_degree+1;
+	};
+
+
+	//Get FE Data info in a static manner. The FE object can provide this (and much more) info
+	//at runtime
+	template <typename FEType, int dim, int dir, int base_fe_degree, int c>
+	struct get_FEData
+	{
+		static constexpr int max_fe_degree = 0;
+		static constexpr bool isIsotropic = true; //FE_Q in all directions is e.g. isotropic
+		static constexpr int fe_degree_for_component = 0;
+	};
+
+
+	template <int dim, int dir, int base_fe_degree, int c>
+	struct get_FEData<FE_RaviartThomas<dim>, dim, dir, base_fe_degree, c>
+	{
+		static constexpr int max_fe_degree = base_fe_degree+1;
+		static constexpr bool isIsotropic = false;
+		static constexpr int fe_degree_for_component = ((dir == c) ? base_fe_degree+1 : base_fe_degree+1);
+	};
+
   namespace MatrixFreeFunctions
   {
     /**
@@ -372,7 +437,6 @@ namespace internal
     {
       reinit (quad, fe_in, base_element_number);
     }
-
   } // end of namespace MatrixFreeFunctions
 
 } // end of namespace internal
