@@ -868,11 +868,11 @@ namespace internal
   struct FEEvaluationImplGen
   {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
-    const int max_fe_degree = get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::max_fe_degree;
-    const int max_n_q_points_1d = get_quad_1d<q_policy,max_fe_degree>::n_q_points_1d;
+    static const int max_fe_degree = get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::max_fe_degree;
+    static const int max_n_q_points_1d = get_quad_1d<q_policy,max_fe_degree>::n_q_points_1d;
 
     static
-    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &(shape_info)[n_components],
+    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
                    VectorizedArray<Number> *values_dofs_actual[],
                    VectorizedArray<Number> *values_quad[],
                    VectorizedArray<Number> *gradients_quad[][dim],
@@ -883,7 +883,7 @@ namespace internal
                    const bool               evaluate_hessians);
 
     static
-    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &(shape_info)[n_components],
+    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
                     VectorizedArray<Number> *values_dofs_actual[],
                     VectorizedArray<Number> *values_quad[],
                     VectorizedArray<Number> *gradients_quad[][dim],
@@ -898,7 +898,7 @@ namespace internal
   inline
   void
   FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
-  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &(shape_info)[n_components],
+  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
               VectorizedArray<Number> *values_dofs_actual[],
               VectorizedArray<Number> *values_quad[],
               VectorizedArray<Number> *gradients_quad[][dim],
@@ -919,7 +919,7 @@ namespace internal
     VectorizedArray<Number> *temp1;
     VectorizedArray<Number> *temp2;
 
-    typedef EvaluatorTensorProduct<variant, dim, fe_degree, max_n_q_points_1d,
+    typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, max_n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
     for (unsigned int c=0; c<n_components; c++)
@@ -1128,7 +1128,7 @@ namespace internal
   inline
   void
   FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
-  ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &(shape_info)[n_components],
+  ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
                VectorizedArray<Number> *values_dofs_actual[],
                VectorizedArray<Number> *values_quad[],
                VectorizedArray<Number> *gradients_quad[][dim],
@@ -1278,6 +1278,7 @@ namespace internal
       }
     }//end of for loop
 
+#if 0 //TBD: TODO
     // case FE_Q_DG0: add values, gradients and second derivatives are zero
     if (type == MatrixFreeFunctions::tensor_symmetric_plus_dg0)
       {
@@ -1312,6 +1313,7 @@ namespace internal
           }
         AssertDimension(count_q, Utilities::fixed_power<dim>(shape_info.fe_degree+1));
       }
+#endif
   }
 
 } // end of namespace internal

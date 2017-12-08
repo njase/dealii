@@ -22,6 +22,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/aligned_vector.h>
 #include <deal.II/fe/fe.h>
+#include <deal.II/fe/fe_raviart_thomas.h>
 
 
 DEAL_II_NAMESPACE_OPEN
