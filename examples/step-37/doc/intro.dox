@@ -140,7 +140,7 @@ Matrixfree<dim>::vmult (Vector<double>       &dst,
       cell_matrix.vmult (cell_dst, cell_src);
 
       for (unsigned int i=0; i<dofs_per_cell; ++i)
-        dst(local_dof_indices(i)) += cell_dst;
+        dst(local_dof_indices(i)) += cell_dst(i);
     }
 }
 @endcode

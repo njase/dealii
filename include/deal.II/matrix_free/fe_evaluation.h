@@ -2062,6 +2062,168 @@ private:
 };
 
 
+ template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number >
+ class FEEvaluationGen : public FEEvaluationAccess<dim, get_n_comp<FEType,dim>::n_components,Number>
+ {
+ public:
+   using BaseClass =  FEEvaluationAccess<dim,get_n_comp<FEType,dim>::n_components,Number>;
+   static constexpr int n_components = BaseClass::n_components;
+   //typedef FEEvaluationAccess<dim,n_components_,Number> BaseClass;
+   typedef Number                            number_type;
+   typedef typename BaseClass::value_type    value_type;
+   typedef typename BaseClass::gradient_type gradient_type;
+   static constexpr unsigned int dimension     = dim;
+   static constexpr unsigned int static_dofs_per_cell =
+		   get_FEData<FEType, dim, 0 /* any dir */,
+		   	   	   base_fe_degree, n_components-1 /* any component */>::dofs_per_cell;
+   //static constexpr unsigned int n_components  = n_components_;
+   //static constexpr unsigned int static_n_q_points    = Utilities::fixed_int_power<n_q_points_1d,dim>::value;
+   //static constexpr unsigned int static_dofs_per_component = Utilities::fixed_int_power<fe_degree+1,dim>::value;
+   //static constexpr unsigned int tensor_dofs_per_cell = static_dofs_per_component *n_components;
+   //static constexpr unsigned int static_dofs_per_cell = static_dofs_per_component *n_components;
+
+   /**
+    * Constructor. Takes all data stored in MatrixFree. If applied to problems
+    * with more than one finite element or more than one quadrature formula
+    * selected during construction of @p matrix_free, @p fe_no and @p quad_no
+    * allow to select the appropriate components.
+    */
+   FEEvaluationGen (const MatrixFree<dim,Number> &matrix_free,
+                 const unsigned int            fe_no   = 0,
+                 const unsigned int            quad_no = 0);
+
+   /**
+    * Constructor that comes with reduced functionality and works similar as
+    * FEValues. The arguments are similar to the ones passed to the constructor
+    * of FEValues, with the notable difference that FEEvaluation expects a one-
+    * dimensional quadrature formula, Quadrature<1>, instead of a @p dim
+    * dimensional one. The finite element can be both scalar or vector valued,
+    * but this method always only selects a scalar base element at a time (with
+    * @p n_components copies as specified by the class template). For vector-
+    * valued elements, the optional argument @p first_selected_component allows
+    * to specify the index of the base element to be used for evaluation. Note
+    * that the internal data structures always assume that the base element is
+    * primitive, non-primitive are not supported currently.
+    *
+    * As known from FEValues, a call to the reinit method with a
+    * Triangulation<dim>::cell_iterator is necessary to make the geometry and
+    * degrees of freedom of the current class known. If the iterator includes
+    * DoFHandler information (i.e., it is a DoFHandler<dim>::cell_iterator or
+    * similar), the initialization allows to also read from or write to vectors
+    * in the standard way for DoFHandler<dim>::active_cell_iterator types for
+    * one cell at a time. However, this approach is much slower than the path
+    * with MatrixFree with MPI since index translation has to be done. As only
+    * one cell at a time is used, this method does not vectorize over several
+    * elements (which is most efficient for vector operations), but only
+    * possibly within the element if the evaluate/integrate routines are
+    * combined inside user code (e.g. for computing cell matrices).
+    */
+   FEEvaluationGen (const Mapping<dim>       &mapping,
+                 const FiniteElement<dim> &fe,
+                 const Quadrature<1>      &quadrature,
+                 const UpdateFlags         update_flags,
+                 const unsigned int        first_selected_component = 0);
+
+   /**
+    * Constructor for the reduced functionality. This constructor is equivalent
+    * to the other one except that it makes the object use a $Q_1$ mapping
+    * (i.e., an object of type MappingQGeneric(1)) implicitly.
+    */
+   FEEvaluationGen (const FiniteElement<dim> &fe,
+                 const Quadrature<1>      &quadrature,
+                 const UpdateFlags         update_flags,
+                 const unsigned int        first_selected_component = 0);
+
+   /**
+    * Constructor for the reduced functionality. Similar to the other
+    * constructor with FiniteElement argument but using another
+    * FEEvaluationBase object to provide info about the geometry. This allows
+    * several FEEvaluation objects to share the geometry evaluation, i.e., the
+    * underlying mapping and quadrature points do only need to be evaluated
+    * once. Make sure to not pass an optional object around when you intend to
+    * use the FEEvaluation object in %parallel to the given one because
+    * otherwise the intended sharing may create race conditions.
+    */
+   template <int n_components_other>
+   FEEvaluationGen (const FiniteElement<dim> &fe,
+                 const FEEvaluationBase<dim,n_components_other,Number> &other,
+                 const unsigned int        first_selected_component = 0);
+
+   /**
+    * Copy constructor. If FEEvaluationBase was constructed from a mapping, fe,
+    * quadrature, and update flags, the underlying geometry evaluation based on
+    * FEValues will be deep-copied in order to allow for using in parallel with
+    * threads.
+    */
+   FEEvaluationGen (const FEEvaluationGen &other);
+
+   /**
+    * Copy assignment operator. If FEEvaluationBase was constructed from a
+    * mapping, fe, quadrature, and update flags, the underlying geometry
+    * evaluation based on FEValues will be deep-copied in order to allow for
+    * using in parallel with threads.
+    */
+   FEEvaluationGen &operator= (const FEEvaluationGen &other);
+
+   /**
+    * Evaluates the function values, the gradients, and the Hessians of the
+    * FE function given at the DoF values in the input vector at the quadrature
+    * points on the unit cell.  The function arguments specify which parts
+    * shall actually be computed. Needs to be called before the functions @p
+    * get_value(), @p get_gradient() or @p get_laplacian give useful
+    * information (unless these values have been set manually).
+    */
+   void evaluate (const bool evaluate_values,
+                  const bool evaluate_gradients,
+                  const bool evaluate_hessians = false);
+
+   /**
+    * This function takes the values and/or gradients that are stored on
+    * quadrature points, tests them by all the basis functions/gradients on the
+    * cell and performs the cell integration. The two function arguments
+    * @p integrate_values and @p integrate_gradients define which of the values
+    * or gradients (or both) are summed together.
+    */
+   void integrate (const bool integrate_values,
+                   const bool integrate_gradients);
+
+   /**
+    * Return the q-th quadrature point stored in MappingInfo.
+    */
+   Point<dim,VectorizedArray<Number> >
+   quadrature_point (const unsigned int q_point) const;
+
+   /**
+    * The number of degrees of freedom of a single component on the cell for
+    * the underlying evaluation object. Usually close to
+    * static_dofs_per_component, but the number depends on the actual element
+    * selected and is thus not static.
+    */
+   const unsigned int dofs_per_component;
+
+   /**
+    * The number of degrees of freedom on the cell accumulated over all
+    * components in the current evaluation object. Usually close to
+    * static_dofs_per_cell = static_dofs_per_component*n_components, but the
+    * number depends on the actual element selected and is thus not static.
+    */
+   const unsigned int dofs_per_cell;
+
+   /**
+    * The number of quadrature points in use for the current evaluation
+    * object. It is evaluated at run-time rather than at compile time
+    * as for @FEEvaluation
+    */
+   const unsigned int n_q_points;
+
+ private:
+   /**
+    * Checks if the template arguments regarding degree of the element
+    * corresponds to the actual element used at initialization.
+    */
+   void check_template_arguments(const unsigned int fe_no,
+                                 const unsigned int first_selected_component);
+ };
 
 namespace internal
 {
@@ -3355,7 +3517,9 @@ FEEvaluationBase<dim,n_components_,Number>
   typename internal::BlockVectorSelector<VectorType,
            IsBlockVector<VectorType>::value>::BaseVectorType *src_data[n_components];
   for (unsigned int d=0; d<n_components; ++d)
-    src_data[d] = internal::BlockVectorSelector<VectorType, IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src), d+first_index);
+    src_data[d] = internal::BlockVectorSelector<VectorType,
+						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
+						d+first_index);
 
   internal::VectorReader<Number> reader;
   read_write_operation (reader, src_data);
@@ -5436,6 +5600,29 @@ FEEvaluation<dim,fe_degree,n_q_points_1d,n_components_,Number>
   this->dof_values_initialized = true;
 #endif
 }
+
+/*-------------------------- FEEvaluationGen -----------------------------------*/
+
+//Done
+template <typename FEType, QuadPolicy q_policy, int dim,
+			int base_fe_degree, typename Number >
+inline
+FEEvaluationGen<FEType,q_polocy,dim,base_fe_degree,Number>
+::FEEvaluationGen (const MatrixFree<dim,Number> &data_in,
+                const unsigned int fe_no,
+                const unsigned int quad_no)
+  :
+  n_q_points (this->data->n_q_points),
+  BaseClass (data_in, fe_no, quad_no,
+		  	  numbers::invalid_unsigned_int,
+			  get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d),
+  dofs_per_component (this->data->dofs_per_component_on_cell),
+  dofs_per_cell (this->data->dofs_per_component_on_cell *n_components_)
+
+{
+  check_template_arguments(fe_no, 0);
+}
+
 
 
 

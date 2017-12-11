@@ -582,7 +582,7 @@ public:
   get_vector_partitioner (const unsigned int vector_component=0) const;
 
   /**
-   * Return the set of cells that are oned by the processor.
+   * Return the set of cells that are owned by the processor.
    */
   const IndexSet &
   get_locally_owned_set (const unsigned int fe_component = 0) const;
