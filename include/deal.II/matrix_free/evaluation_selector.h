@@ -378,12 +378,12 @@ struct SelectEvaluator<dim, -1, n_q_points_1d, n_components, Number>
 };
 
 
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 struct SelectEvaluatorGen
 {
-	static constexpr int n_components = internal::get_n_comp<FEType,dim>::n_components;
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
 
-	static void evaluate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	static void evaluate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                       VectorizedArray<Number> *values_dofs_actual[],
 	                       VectorizedArray<Number> *values_quad[],
 	                       VectorizedArray<Number> *gradients_quad[][dim],
@@ -393,7 +393,7 @@ struct SelectEvaluatorGen
 	                       const bool               evaluate_gradients,
 	                       const bool               evaluate_hessians);
 
-	  static void integrate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	  static void integrate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
 	                        VectorizedArray<Number> *gradients_quad[][dim],
@@ -402,12 +402,12 @@ struct SelectEvaluatorGen
 	                        const bool               integrate_gradients);
 };
 
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 struct SelectEvaluatorAnisotropic
 {
-	static constexpr int n_components = internal::get_n_comp<FEType,dim>::n_components;
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
 
-	static void evaluate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	static void evaluate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                       VectorizedArray<Number> *values_dofs_actual[],
 	                       VectorizedArray<Number> *values_quad[],
 	                       VectorizedArray<Number> *gradients_quad[][dim],
@@ -417,7 +417,7 @@ struct SelectEvaluatorAnisotropic
 	                       const bool               evaluate_gradients,
 	                       const bool               evaluate_hessians);
 
-	  static void integrate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	  static void integrate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
 	                        VectorizedArray<Number> *gradients_quad[][dim],
@@ -655,11 +655,11 @@ SelectEvaluator<dim, -1, dummy, n_components, Number>::integrate
 }
 
 
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 inline
 void
 SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
-	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	 VectorizedArray<Number> *values_dofs_actual[],
 	 VectorizedArray<Number> *values_quad[],
 	 VectorizedArray<Number> *gradients_quad[][dim],
@@ -669,10 +669,10 @@ SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 	 const bool               evaluate_gradients,
 	 const bool               evaluate_hessians)
 {
-	if (internal::get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
+	if (get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
 	{
 			//Old style SelectEvaluator
-			SelectEvaluator<dim, base_fe_degree, internal::get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
+			SelectEvaluator<dim, base_fe_degree, get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
 						n_components, Number>
 			::evaluate (shape_info, values_dofs_actual, values_quad,
 			              gradients_quad, hessians_quad, scratch_data,
@@ -688,11 +688,11 @@ SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 }
 
 
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 inline
 void
 SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
-		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
 	                        VectorizedArray<Number> *gradients_quad[][dim],
@@ -700,10 +700,10 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 	                        const bool               integrate_values,
 	                        const bool               integrate_gradients)
 {
-	if (internal::get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
+	if (get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
 	{
 		//Old style SelectEvaluator
-		SelectEvaluator<dim, base_fe_degree, internal::get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
+		SelectEvaluator<dim, base_fe_degree, get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
 						n_components, Number>
 				::integrate (shape_info, values_dofs_actual, values_quad,
 			              gradients_quad, scratch_data,
@@ -712,7 +712,7 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 	else//new style when FEType is RaviartThomas or something
 	{
 		SelectEvaluatorAnisotropic<FEType, q_policy, dim, base_fe_degree, Number>
-		  ::evaluate (shape_info, values_dofs_actual, values_quad,
+		  ::integrate (shape_info, values_dofs_actual, values_quad,
 		              gradients_quad, scratch_data,
 		              integrate_values, integrate_gradients);
 	}
@@ -721,11 +721,11 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 
 //TODO: Put a check on the right type to be given as template argument to FEEvaluationImplGen
 //Currently, only tensor_general is provided as default for testing and debugging
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 inline
 void
 SelectEvaluatorAnisotropic<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
-	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	 VectorizedArray<Number> *values_dofs_actual[],
 	 VectorizedArray<Number> *values_quad[],
 	 VectorizedArray<Number> *gradients_quad[][dim],
@@ -743,11 +743,11 @@ SelectEvaluatorAnisotropic<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 }
 
 
-template <typename FEType, internal::QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
 inline
 void
 SelectEvaluatorAnisotropic<FEType,q_policy,dim,base_fe_degree,Number>::integrate
-		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > (&shape_info)[n_components],
+		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
 	                        VectorizedArray<Number> *gradients_quad[][dim],

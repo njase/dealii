@@ -31,6 +31,7 @@
 #include <deal.II/matrix_free/evaluation_kernels.h>
 #include <deal.II/matrix_free/tensor_product_kernels.h>
 #include <deal.II/matrix_free/evaluation_selector.h>
+#include <deal.II/matrix_free/fe_evaluation_gen.h>
 
 #include <deal.II/lac/vector_operation.h>
 
@@ -50,6 +51,7 @@ namespace internal
 {
   DeclException0 (ExcAccessToUninitializedField);
 }
+
 
 template <int dim, int fe_degree, int n_q_points_1d = fe_degree+1,
           int n_components_ = 1, typename Number = double > class FEEvaluation;
@@ -2092,6 +2094,7 @@ private:
                  const unsigned int            fe_no   = 0,
                  const unsigned int            quad_no = 0);
 
+#if 0
    /**
     * Constructor that comes with reduced functionality and works similar as
     * FEValues. The arguments are similar to the ones passed to the constructor
@@ -2164,6 +2167,7 @@ private:
     * using in parallel with threads.
     */
    FEEvaluationGen &operator= (const FEEvaluationGen &other);
+#endif
 
    /**
     * Evaluates the function values, the gradients, and the Hessians of the
@@ -5603,26 +5607,82 @@ FEEvaluation<dim,fe_degree,n_q_points_1d,n_components_,Number>
 
 /*-------------------------- FEEvaluationGen -----------------------------------*/
 
-//Done
 template <typename FEType, QuadPolicy q_policy, int dim,
 			int base_fe_degree, typename Number >
 inline
-FEEvaluationGen<FEType,q_polocy,dim,base_fe_degree,Number>
+FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
 ::FEEvaluationGen (const MatrixFree<dim,Number> &data_in,
                 const unsigned int fe_no,
                 const unsigned int quad_no)
   :
-  n_q_points (this->data->n_q_points),
-  BaseClass (data_in, fe_no, quad_no,
-		  	  numbers::invalid_unsigned_int,
-			  get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d),
+   BaseClass (data_in, fe_no, quad_no,
+   		  	  numbers::invalid_unsigned_int,
+   		  	numbers::invalid_unsigned_int),
   dofs_per_component (this->data->dofs_per_component_on_cell),
-  dofs_per_cell (this->data->dofs_per_component_on_cell *n_components_)
-
+  dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
+  n_q_points (this->data->n_q_points)
 {
-  check_template_arguments(fe_no, 0);
+  //check_template_arguments(fe_no, 0);
 }
 
+
+template <typename FEType, QuadPolicy q_policy, int dim,
+			int base_fe_degree, typename Number >
+inline
+void
+FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
+::evaluate (const bool evaluate_values,
+            const bool evaluate_gradients,
+            const bool evaluate_hessians)
+{
+  Assert (this->dof_values_initialized == true,
+          internal::ExcAccessToUninitializedField());
+  Assert(this->matrix_info != nullptr ||
+         this->mapped_geometry->is_initialized(), ExcNotInitialized());
+
+  SelectEvaluatorGen<FEType, q_policy, dim, base_fe_degree, Number>
+  ::evaluate (*this->data, &this->values_dofs[0], this->values_quad,
+              this->gradients_quad, this->hessians_quad, this->scratch_data,
+              evaluate_values, evaluate_gradients, evaluate_hessians);
+
+#ifdef DEBUG
+  if (evaluate_values == true)
+    this->values_quad_initialized = true;
+  if (evaluate_gradients == true)
+    this->gradients_quad_initialized = true;
+  if (evaluate_hessians == true)
+    this->hessians_quad_initialized  = true;
+#endif
+}
+
+
+
+template <typename FEType, QuadPolicy q_policy, int dim,
+			int base_fe_degree, typename Number >
+inline
+void
+FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
+::integrate (const bool integrate_values,
+             const bool integrate_gradients)
+{
+  if (integrate_values == true)
+    Assert (this->values_quad_submitted == true,
+            internal::ExcAccessToUninitializedField());
+  if (integrate_gradients == true)
+    Assert (this->gradients_quad_submitted == true,
+            internal::ExcAccessToUninitializedField());
+  Assert(this->matrix_info != nullptr ||
+         this->mapped_geometry->is_initialized(), ExcNotInitialized());
+
+  SelectEvaluatorGen<FEType, q_policy, dim, base_fe_degree, Number>
+  ::integrate (*this->data, &this->values_dofs[0], this->values_quad,
+               this->gradients_quad, this->scratch_data,
+               integrate_values, integrate_gradients);
+
+#ifdef DEBUG
+  this->dof_values_initialized = true;
+#endif
+}
 
 
 

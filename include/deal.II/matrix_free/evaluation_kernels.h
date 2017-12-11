@@ -872,7 +872,7 @@ namespace internal
     static const int max_n_q_points_1d = get_quad_1d<q_policy,max_fe_degree>::n_q_points_1d;
 
     static
-    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
+    void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &vec_shape_info,
                    VectorizedArray<Number> *values_dofs_actual[],
                    VectorizedArray<Number> *values_quad[],
                    VectorizedArray<Number> *gradients_quad[][dim],
@@ -883,7 +883,7 @@ namespace internal
                    const bool               evaluate_hessians);
 
     static
-    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
+    void integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &vec_shape_info,
                     VectorizedArray<Number> *values_dofs_actual[],
                     VectorizedArray<Number> *values_quad[],
                     VectorizedArray<Number> *gradients_quad[][dim],
@@ -898,7 +898,7 @@ namespace internal
   inline
   void
   FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
-  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
+  ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &vec_shape_info,
               VectorizedArray<Number> *values_dofs_actual[],
               VectorizedArray<Number> *values_quad[],
               VectorizedArray<Number> *gradients_quad[][dim],
@@ -921,6 +921,12 @@ namespace internal
 
     typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, max_n_q_points_1d,
             VectorizedArray<Number> > Eval;
+
+    //We know this!. Polymorphism of ShapeInfoVector is only to accomodate the previous design
+    MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>> shape_info =
+    		static_cast<MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>> &> (
+    				const_cast<MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &>(vec_shape_info)
+    				);
 
     for (unsigned int c=0; c<n_components; c++)
     {
@@ -1128,7 +1134,7 @@ namespace internal
   inline
   void
   FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
-  ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> (&shape_info)[n_components],
+  ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &vec_shape_info,
                VectorizedArray<Number> *values_dofs_actual[],
                VectorizedArray<Number> *values_quad[],
                VectorizedArray<Number> *gradients_quad[][dim],
@@ -1147,6 +1153,12 @@ namespace internal
 
     typedef EvaluatorTensorProduct<variant, dim, max_fe_degree, max_n_q_points_1d,
             VectorizedArray<Number> > Eval;
+
+    //We know this!. Polymorphism of ShapeInfoVector is only to accomodate the previous design
+    MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>> shape_info =
+    		static_cast<MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>> &> (
+    				const_cast<MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &>(vec_shape_info)
+    				);
 
     for (unsigned int c=0; c<n_components; c++)
     {
