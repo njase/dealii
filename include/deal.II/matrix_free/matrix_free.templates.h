@@ -16,7 +16,6 @@
 #ifndef dealii_matrix_free_templates_h
 #define dealii_matrix_free_templates_h
 
-
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/memory_consumption.h>
 #include <deal.II/base/tensor_product_polynomials.h>
@@ -37,16 +36,19 @@ DEAL_II_NAMESPACE_OPEN
 
 
 // --------------------- MatrixFree -----------------------------------
-
 template <int dim, typename Number>
-MatrixFree<dim, Number>::MatrixFree()
+MatrixFree<dim, Number>::MatrixFree(bool use_non_primitive)
   :
   Subscriptor(),
   indices_are_initialized (false),
-  mapping_is_initialized  (false)
-{}
-
-
+  mapping_is_initialized  (false),
+  use_non_primitive(use_non_primitive)
+{
+	if (use_non_primitive)
+		shape_info = new (Table<4,internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>>);
+	else
+		shape_info = new (Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>>);
+}
 
 template <int dim, typename Number>
 MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
@@ -56,8 +58,13 @@ MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
   copy_from(other);
 }
 
+template <int dim, typename Number>
+MatrixFree<dim, Number>::~MatrixFree()
+{
+	free shape_info;
+}
 
-
+//FIXME: Add deep copy for shape_info
 template <int dim, typename Number>
 void MatrixFree<dim,Number>::
 copy_from (const MatrixFree<dim,Number> &v)
@@ -93,12 +100,12 @@ internal_reinit(const Mapping<dim>                          &mapping,
   {
     const unsigned int n_fe   = dof_handler.size();
     const unsigned int n_quad = quad.size();
-    shape_info.reinit (TableIndices<4>(n_fe, n_quad, 1, 1));
+    shape_info->reinit (TableIndices<4>(n_fe, n_quad, 1, 1));
     for (unsigned int no=0; no<n_fe; no++)
       for (unsigned int nq =0; nq<n_quad; nq++)
         {
           AssertDimension (quad[nq].size(), 1);
-          shape_info(no,nq,0,0).reinit(quad[nq][0], dof_handler[no]->get_fe());
+          shape_info(no,nq,0,0)->reinit(quad[nq][0], dof_handler[no]->get_fe());
         }
   }
 
@@ -225,14 +232,14 @@ internal_reinit(const Mapping<dim>                            &mapping,
     unsigned int n_quad_in_collection = 0;
     for (unsigned int q=0; q<n_quad; ++q)
       n_quad_in_collection = std::max (n_quad_in_collection, quad[q].size());
-    shape_info.reinit (TableIndices<4>(n_components, n_quad,
+    shape_info->reinit (TableIndices<4>(n_components, n_quad,
                                        n_fe_in_collection,
                                        n_quad_in_collection));
     for (unsigned int no=0; no<n_components; no++)
       for (unsigned int fe_no=0; fe_no<dof_handler[no]->get_fe_collection().size(); ++fe_no)
         for (unsigned int nq =0; nq<n_quad; nq++)
           for (unsigned int q_no=0; q_no<quad[nq].size(); ++q_no)
-            shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
+            *shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
                                                  dof_handler[no]->get_fe(fe_no));
   }
 
@@ -552,7 +559,7 @@ void MatrixFree<dim,Number>::initialize_indices
           dof_info[no].dimension    = dim;
           dof_info[no].n_components = n_fe_components;
 
-          AssertDimension (shape_info(no,0,fe_index,0).lexicographic_numbering.size(),
+          AssertDimension (*shape_info(no,0,fe_index,0).lexicographic_numbering.size(),
                            dof_info[no].dofs_per_cell[fe_index]);
         }
 
@@ -602,7 +609,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,0,0).lexicographic_numbering,
+                                             *shape_info(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -621,7 +628,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_mg_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,0,0).lexicographic_numbering,
+                                             *shape_info(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -641,7 +648,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (cell_it->get_fe().dofs_per_cell);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,cell_it->active_fe_index(),0).lexicographic_numbering,
+                                             *shape_info(no,0,cell_it->active_fe_index(),0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -791,7 +798,7 @@ std::size_t MatrixFree<dim,Number>::memory_consumption () const
 {
   std::size_t memory = MemoryConsumption::memory_consumption (dof_info);
   memory += MemoryConsumption::memory_consumption (cell_level_index);
-  memory += MemoryConsumption::memory_consumption (shape_info);
+  memory += MemoryConsumption::memory_consumption (*shape_info);
   memory += MemoryConsumption::memory_consumption (constraint_pool_data);
   memory += MemoryConsumption::memory_consumption (constraint_pool_row_index);
   memory += MemoryConsumption::memory_consumption (task_info);
@@ -821,7 +828,7 @@ void MatrixFree<dim,Number>::print_memory_consumption (StreamType &out) const
 
   out << "   Memory unit cell shape data:      ";
   size_info.print_memory_statistics
-  (out, MemoryConsumption::memory_consumption (shape_info));
+  (out, MemoryConsumption::memory_consumption (*shape_info));
   if (task_info.use_multithreading == true)
     {
       out << "   Memory task partitioning info:    ";

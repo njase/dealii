@@ -283,9 +283,9 @@ public:
    */
   //@{
   /**
-   * Default empty constructor. Does nothing.
+   * Default constructor.
    */
-  MatrixFree ();
+  MatrixFree (bool use_non_primitive=false);
 
   /**
    * Copy constructor, calls copy_from
@@ -295,7 +295,7 @@ public:
   /**
    * Destructor.
    */
-  ~MatrixFree() = default;
+  ~MatrixFree();
 
   /**
    * Extracts the information needed to perform loops over cells. The
@@ -981,7 +981,7 @@ private:
   /**
    * Contains shape value information on the unit cell.
    */
-  Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>> shape_info;
+  Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>> *shape_info;
 
   /**
    * Describes how the cells are gone through. With the cell level (first
@@ -1020,6 +1020,11 @@ private:
    * objects.
    */
   mutable Threads::ThreadLocalStorage<std::list<std::pair<bool, AlignedVector<VectorizedArray<Number> > > > > scratch_pad;
+
+  /*
+   * To indicate preference for using non-primitive FE. Provided during constructor. Default = false
+   */
+  bool use_non_primitive;
 };
 
 
@@ -1459,11 +1464,11 @@ const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
                                             const unsigned int active_fe_index,
                                             const unsigned int active_quad_index) const
 {
-  AssertIndexRange (index_fe, shape_info.size(0));
-  AssertIndexRange (index_quad, shape_info.size(1));
-  AssertIndexRange (active_fe_index, shape_info.size(2));
-  AssertIndexRange (active_quad_index, shape_info.size(3));
-  return shape_info(index_fe, index_quad,
+  AssertIndexRange (index_fe, shape_info->size(0));
+  AssertIndexRange (index_quad, shape_info->size(1));
+  AssertIndexRange (active_fe_index, shape_info->size(2));
+  AssertIndexRange (active_quad_index, shape_info->size(3));
+  return (*shape_info)(index_fe, index_quad,
                     active_fe_index, active_quad_index);
 }
 
@@ -1603,7 +1608,7 @@ reinit(const DoFHandlerType                                  &dof_handler,
 {
   std::vector<const DoFHandlerType *>   dof_handlers;
   std::vector<const ConstraintMatrix *> constraints;
-  std::vector<QuadratureType>           quads;
+  std::vector<QuadratureType>           quads; //FIXME: COMMENT: This vector is locally created and unused, purpose?
 
   dof_handlers.push_back(&dof_handler);
   constraints.push_back (&constraints_in);
