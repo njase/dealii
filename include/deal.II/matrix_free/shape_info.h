@@ -350,6 +350,10 @@ namespace internal
        * that save some operations in the evaluation.
        */
       bool check_1d_shapes_collocation();
+
+      //Shape values - for this component, max 3 dimensions can be stored
+      //required for anisotropic tensor product
+      std::array<Alignedvector<Number>,3> shape_values_component;
     };
 
 
@@ -357,7 +361,7 @@ namespace internal
     template <typename Number>
     struct ShapeInfoVector:public ShapeInfo<Number>
     {
-    	//Store data for first component in ShapeInfo due to polymorphism
+    	//The data for first component is stored in Base class
 
     	//Store data for rest of the components in a vector
     	std::vector<ShapeInfo<Number>> shape_info_vec;
@@ -374,7 +378,15 @@ namespace internal
 
     	//define constructor? - TODO
 
-    	//define a reinit function - TODO
+        template <int dim>
+        void reinit (const QuadPolicy &quad_policy,
+                     const FiniteElement<dim> &fe_dim,
+                     const unsigned int base_element = 0);
+
+    private:
+        //Shared results
+        std::vector<AlignedVector<Number>> basic_shape_values;
+        //TBD: Similarly define for gradients, hessians whatever etc
     };
 
     // ------------------------------------------ inline functions

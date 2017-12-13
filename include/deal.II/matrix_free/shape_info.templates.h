@@ -77,6 +77,8 @@ namespace internal
                                const FiniteElement<dim> &fe_in,
                                const unsigned int base_element_number)
     {
+
+    	//SAUR: Why another & ?
       const FiniteElement<dim> *fe = &fe_in.base_element(base_element_number);
 
       Assert (fe->n_components() == 1,
@@ -523,6 +525,66 @@ namespace internal
     }
 
     // end of functions for ShapeInfo
+
+
+
+    //functions for ShapeInfoVector
+
+    template <typename Number>
+    template <int dim>
+    void
+    void reinit (const QuadPolicy &quad_policy,
+                 const FiniteElement<dim> &fe_dim,
+                 const unsigned int base_element = 0)
+    {
+    	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
+    	FEName fe_name = FEName::FE_Unknown;
+    	std::vector<unsigned int> mask(3);
+
+        /*
+         * Algo
+         * Using FEType, identify number of components
+         * utilize the reinit logic of ShapeInfo (restructure it) to evaluate values, quad and hessians
+         *  for the required 1-D quad points and 1-D basis functions as many times as required for the particular
+         *  FEType. Store the results in basic_shape_values
+         * perform reinit for all the components as:
+		 *   Mix and match results from basic_shape_values to shape_values_component as needed
+         */
+    	unsigned int n_components = fe_dim.n_components();
+
+    	//Find out type of FE as RT or from 1-D tensor product based
+    	const FiniteElement<dim> *fe = fe_dim.base_element(base_element);
+
+    	const FE_RaviartThomas<dim> *fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
+    	const FE_Q<dim> *fe_gen = dynamic_cast<const FE_Q<dim> *>(fe);
+
+    	if (fe_rt != nullptr)
+    	{
+    		fe_name = FEName::FE_RT;
+    		//mask[0] =
+    	}
+
+    	if (fe_gen != nullptr)
+    		fe_name = FEName::FE_Q_TP;
+
+    	if (fe_name == FEName::FE_Unknown)
+    		Assert (false, ExcNotImplemented());
+
+    	//Evaluate for 1 D quad points = fe_degree,k
+
+    	if (fe_name == FEName::FE_RT)
+    	{
+    		//Evaluate for 1 D quad points = fe_degree+1, k+1
+    	}
+
+
+    	for (int i=0; i<n_components; i++)
+    	{
+    		TBD
+    	}
+
+
+    }
 
   } // end of namespace MatrixFreeFunctions
 } // end of namespace internal

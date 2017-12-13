@@ -419,6 +419,16 @@ public:
                const AdditionalData                        additional_data = AdditionalData());
 
   /**
+   * Initializes the data structures for vector valued problems. Same as above, but using
+   * general Quadrature Policy instead of fixed Quadrature rule for each direction
+   */
+  template <typename DoFHandlerType>
+  void reinit (const std::vector<const DoFHandlerType *>   &dof_handler,
+               const std::vector<const ConstraintMatrix *> &constraint,
+               const QuadPolicy                            &q_policy,
+               const AdditionalData                        additional_data = AdditionalData());
+
+  /**
    * Copy function. Creates a deep copy of all data structures. It is usually
    * enough to keep the data for different operations once, so this function
    * should not be needed very often.

@@ -45,9 +45,9 @@ MatrixFree<dim, Number>::MatrixFree(bool use_non_primitive)
   use_non_primitive(use_non_primitive)
 {
 	if (use_non_primitive)
-		shape_info = new (Table<4,internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>>);
+		shape_info = (decltype(shape_info))new Table<4,internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>>;
 	else
-		shape_info = new (Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>>);
+		shape_info = new Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>>;
 }
 
 template <int dim, typename Number>
@@ -61,7 +61,7 @@ MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
 template <int dim, typename Number>
 MatrixFree<dim, Number>::~MatrixFree()
 {
-	free shape_info;
+	delete shape_info;
 }
 
 //FIXME: Add deep copy for shape_info
@@ -105,7 +105,7 @@ internal_reinit(const Mapping<dim>                          &mapping,
       for (unsigned int nq =0; nq<n_quad; nq++)
         {
           AssertDimension (quad[nq].size(), 1);
-          shape_info(no,nq,0,0)->reinit(quad[nq][0], dof_handler[no]->get_fe());
+          (*shape_info)(no,nq,0,0).reinit(quad[nq][0], dof_handler[no]->get_fe());
         }
   }
 
@@ -239,7 +239,7 @@ internal_reinit(const Mapping<dim>                            &mapping,
       for (unsigned int fe_no=0; fe_no<dof_handler[no]->get_fe_collection().size(); ++fe_no)
         for (unsigned int nq =0; nq<n_quad; nq++)
           for (unsigned int q_no=0; q_no<quad[nq].size(); ++q_no)
-            *shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
+            (*shape_info)(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
                                                  dof_handler[no]->get_fe(fe_no));
   }
 
@@ -559,7 +559,7 @@ void MatrixFree<dim,Number>::initialize_indices
           dof_info[no].dimension    = dim;
           dof_info[no].n_components = n_fe_components;
 
-          AssertDimension (*shape_info(no,0,fe_index,0).lexicographic_numbering.size(),
+          AssertDimension ((*shape_info)(no,0,fe_index,0).lexicographic_numbering.size(),
                            dof_info[no].dofs_per_cell[fe_index]);
         }
 
@@ -609,7 +609,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             *shape_info(no,0,0,0).lexicographic_numbering,
+                                             (*shape_info)(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -628,7 +628,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_mg_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             *shape_info(no,0,0,0).lexicographic_numbering,
+                                             (*shape_info)(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -648,7 +648,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (cell_it->get_fe().dofs_per_cell);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             *shape_info(no,0,cell_it->active_fe_index(),0).lexicographic_numbering,
+                                             (*shape_info)(no,0,cell_it->active_fe_index(),0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
