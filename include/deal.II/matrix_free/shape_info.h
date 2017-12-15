@@ -76,6 +76,16 @@ namespace internal
       tensor_symmetric_plus_dg0 = 5
     };
 
+    template <typename Number>
+    struct ShapeInfo
+    {
+        AlignedVector<Number> shape_values;
+
+        AlignedVector<Number> shape_gradients;
+
+        AlignedVector<Number> shape_hessians;
+
+    };
 
     /**
      * The class that stores the shape functions, gradients and Hessians
@@ -86,18 +96,18 @@ namespace internal
      * @author Katharina Kormann and Martin Kronbichler, 2010, 2011
      */
     template <typename Number>
-    struct ShapeInfo
+    struct ShapeInfoScalar:public ShapeInfo<Number>
     {
       /**
        * Empty constructor. Does nothing.
        */
-    	ShapeInfo ();
+    	ShapeInfoScalar ();
 
       /**
        * Constructor that initializes the data fields using the reinit method.
        */
       template <int dim>
-      ShapeInfo (const Quadrature<1> &quad,
+      ShapeInfoScalar (const Quadrature<1> &quad,
                  const FiniteElement<dim> &fe,
                  const unsigned int base_element = 0);
 
@@ -133,7 +143,7 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      AlignedVector<Number> shape_values;
+      //AlignedVector<Number> shape_values;
 
       /**
        * Stores the shape gradients of the 1D finite element evaluated on all
@@ -142,7 +152,7 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      AlignedVector<Number> shape_gradients;
+      //AlignedVector<Number> shape_gradients;
 
       /**
        * Stores the shape Hessians of the 1D finite element evaluated on all
@@ -151,7 +161,7 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      AlignedVector<Number> shape_hessians;
+      //AlignedVector<Number> shape_hessians;
 
       /**
        * Stores the shape values in a different format, namely the so-called
@@ -353,7 +363,7 @@ namespace internal
 
       //Shape values - for this component, max 3 dimensions can be stored
       //required for anisotropic tensor product
-      std::array<Alignedvector<Number>,3> shape_values_component;
+      std::array<typename AlignedVector<Number>::iterator,3> shape_values_comp;
     };
 
 
@@ -369,24 +379,27 @@ namespace internal
     	//over load [] operator
     	ShapeInfo<Number> &operator[] (const int c)
     	{
+    		AssertIndexRange(c, 3);
+
     		//upcast has no overhead -> compile time
+    		return dynamic_cast<ShapeInfo<Number> &>(shape_info_vec[c]);
+#if 0
     		if (c==0)
     			return dynamic_cast<ShapeInfo<Number> &> (*this);
     		else
     			return dynamic_cast<ShapeInfo<Number> &>(shape_info_vec[c-1]);
+#endif
     	}
 
-    	//define constructor? - TODO
+        /**
+         * Empty constructor. Does nothing.
+         */
+    	ShapeInfoVector () = default;
 
         template <int dim>
-        void reinit (const QuadPolicy &quad_policy,
+        void reinit (const Quadrature<1> &quad,
                      const FiniteElement<dim> &fe_dim,
                      const unsigned int base_element = 0);
-
-    private:
-        //Shared results
-        std::vector<AlignedVector<Number>> basic_shape_values;
-        //TBD: Similarly define for gradients, hessians whatever etc
     };
 
     // ------------------------------------------ inline functions
@@ -394,7 +407,7 @@ namespace internal
     template <typename Number>
     template <int dim>
     inline
-    ShapeInfo<Number>::ShapeInfo (const Quadrature<1> &quad,
+    ShapeInfoScalar<Number>::ShapeInfoScalar (const Quadrature<1> &quad,
                                   const FiniteElement<dim> &fe_in,
                                   const unsigned int base_element_number)
       :

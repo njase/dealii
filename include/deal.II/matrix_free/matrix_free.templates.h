@@ -45,9 +45,9 @@ MatrixFree<dim, Number>::MatrixFree(bool use_non_primitive)
   use_non_primitive(use_non_primitive)
 {
 	if (use_non_primitive)
-		shape_info = (decltype(shape_info))new Table<4,internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>>;
+		shape_info = (decltype(shape_info)) new Table<4,internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>>;
 	else
-		shape_info = new Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>>;
+		shape_info = (decltype(shape_info)) new Table<4,internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>>;
 }
 
 template <int dim, typename Number>
