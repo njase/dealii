@@ -66,7 +66,12 @@ namespace internal
       n_q_points_face (0),
       dofs_per_component_on_face (0),
       nodal_at_cell_boundaries (false)
-    {}
+    {
+    	//Due to structure of FE, we want to store data along one dimension only
+    	shape_values.resize(1);
+    	shape_gradients.resize(1);
+    	shape_hessians.resize(1);
+    }
 
 
 

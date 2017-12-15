@@ -79,12 +79,12 @@ namespace internal
     template <typename Number>
     struct ShapeInfo
     {
-        AlignedVector<Number> shape_values;
+        //Shape values - basis shape values - as of now, max 2 are required (for RT)
+        std::array<typename AlignedVector<Number>,2> base_shape_values;
 
-        AlignedVector<Number> shape_gradients;
+        std::array<typename AlignedVector<Number>,2> base_shape_gradients;
 
-        AlignedVector<Number> shape_hessians;
-
+        std::array<typename AlignedVector<Number>,2> base_shape_hessians;
     };
 
     /**
@@ -143,7 +143,9 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      //AlignedVector<Number> shape_values;
+      //These are now used as component wise shape_values
+      //they pick up permutations from base_shape_values
+      std::vector<typename AlignedVector<Number>::iterator> shape_values;
 
       /**
        * Stores the shape gradients of the 1D finite element evaluated on all
@@ -152,7 +154,7 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      //AlignedVector<Number> shape_gradients;
+      std::vector<typename AlignedVector<Number>::iterator> shape_gradients;
 
       /**
        * Stores the shape Hessians of the 1D finite element evaluated on all
@@ -161,7 +163,7 @@ namespace internal
        * this array is <tt>n_dofs_1d * n_q_points_1d</tt> and quadrature
        * points are the index running fastest.
        */
-      //AlignedVector<Number> shape_hessians;
+      std::vector<typename AlignedVector<Number>::iterator> shape_hessians;
 
       /**
        * Stores the shape values in a different format, namely the so-called
@@ -360,10 +362,6 @@ namespace internal
        * that save some operations in the evaluation.
        */
       bool check_1d_shapes_collocation();
-
-      //Shape values - for this component, max 3 dimensions can be stored
-      //required for anisotropic tensor product
-      std::array<typename AlignedVector<Number>::iterator,3> shape_values_comp;
     };
 
 
