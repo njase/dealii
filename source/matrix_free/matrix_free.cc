@@ -25,9 +25,9 @@ DEAL_II_NAMESPACE_OPEN
 
 #include "matrix_free.inst"
 
-template struct internal::MatrixFreeFunctions::ShapeInfo<double>;
-template struct internal::MatrixFreeFunctions::ShapeInfo<float>;
-template struct internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<double>>;
-template struct internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<float>>;
+template struct internal::MatrixFreeFunctions::ShapeInfoScalar<double>;
+template struct internal::MatrixFreeFunctions::ShapeInfoScalar<float>;
+template struct internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<double>>;
+template struct internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<float>>;
 
 DEAL_II_NAMESPACE_CLOSE

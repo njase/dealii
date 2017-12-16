@@ -58,19 +58,13 @@ namespace internal
     template <typename Number>
     ShapeInfoScalar<Number>::ShapeInfoScalar ()
       :
-      element_type (tensor_general),
-      fe_degree (numbers::invalid_unsigned_int),
-      n_q_points_1d(0),
+      ShapeInfoBase<Number>(tensor_general,numbers::invalid_unsigned_int,0),
       n_q_points (0),
       dofs_per_component_on_cell (0),
       n_q_points_face (0),
       dofs_per_component_on_face (0),
       nodal_at_cell_boundaries (false)
     {
-    	//Due to structure of FE, we want to store data along one dimension only
-    	shape_values.resize(1);
-    	shape_gradients.resize(1);
-    	shape_hessians.resize(1);
     }
 
 
@@ -191,6 +185,7 @@ namespace internal
       dofs_per_component_on_face = dim>1?Utilities::fixed_power<dim-1>(fe_degree+1):1;
 
       const unsigned int array_size = n_dofs_1d*n_q_points_1d;
+
       this->shape_gradients.resize_fast (array_size);
       this->shape_values.resize_fast (array_size);
       this->shape_hessians.resize_fast (array_size);
@@ -533,6 +528,16 @@ namespace internal
 
     //functions for ShapeInfoVector
 
+    template <typename Number>
+    ShapeInfoVector<Number>::ShapeInfoVector ()
+    :
+    ShapeInfoBase<Number>(tensor_general,numbers::invalid_unsigned_int,0)
+    {
+        //Due to structure of FE which we use (RT and FE_Q), we want to store data for max two dimensions only
+    	base_shape_values.resize(2);
+    	base_shape_gradients.resize(2);
+    	base_shape_hessians.resize(2);
+    }
 
     template <typename Number>
     template <int dim>
@@ -544,6 +549,7 @@ namespace internal
     	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
     	FEName fe_name = FEName::FE_Unknown;
     	std::vector<unsigned int> mask(3);
+
 
         /*
          * Algo
@@ -699,9 +705,18 @@ namespace internal
         //dofs_per_component_on_face = dim>1?Utilities::fixed_power<dim-1>(fe_degree+1):1;
 
         const unsigned int array_size = n_dofs_1d*n_q_points_1d;
-        this->shape_gradients.resize_fast (array_size);
-        this->shape_values.resize_fast (array_size);
-        this->shape_hessians.resize_fast (array_size);
+        //this->shape_gradients.resize_fast (array_size);
+        //this->shape_values.resize_fast (array_size);
+        //this->shape_hessians.resize_fast (array_size);
+
+        //For FE_Q, due to structure of FE, we need to store along one dimension only
+        this->base_shape_gradients.resize(1);
+        this->base_shape_values.resize(1);
+        this->base_shape_hessians.resize(1);
+
+        this->base_shape_gradients[0].resize_fast (array_size);
+        this->base_shape_values[0].resize_fast (array_size);
+        this->base_shape_hessians[0].resize_fast (array_size);
 
         //this->shape_data_on_face[0].resize(3*n_dofs_1d);
         //this->shape_data_on_face[1].resize(3*n_dofs_1d);
@@ -724,9 +739,9 @@ namespace internal
                 Point<dim> q_point = unit_point;
                 q_point[0] = quad.get_points()[q][0];
 
-                shape_values   [i*n_q_points_1d+q] = temp_fe->shape_value(my_i,q_point);
-                shape_gradients[i*n_q_points_1d+q] = temp_fe->shape_grad(my_i,q_point)[0];
-                shape_hessians [i*n_q_points_1d+q] = temp_fe->shape_grad_grad(my_i,q_point)[0][0];
+                base_shape_values[0][i*n_q_points_1d+q] = temp_fe->shape_value(my_i,q_point);
+                base_shape_gradients[0][i*n_q_points_1d+q] = temp_fe->shape_grad(my_i,q_point)[0];
+                base_shape_hessians[0][i*n_q_points_1d+q] = temp_fe->shape_grad_grad(my_i,q_point)[0][0];
 
 #if 0
                 // evaluate basis functions on the two 1D subfaces (i.e., at the
@@ -889,24 +904,22 @@ namespace internal
 
     }
 
-    1d_shape_values_list[0] = shape_values.begin();
 
-    for (int i=0; i<vector_n_components; i++)
+    this->shape_values.resize(vector_n_components);
+    this->shape_gradients.resize(vector_n_components);
+    this->shape_hessians.resize(vector_n_components);
+
+
+    for (int c=0; c<vector_n_components; c++)
     {
     	if (FEName::FE_Q_TP == fe_name)
     	{
-    		//Set for all 3 dimensions (max 3)
-    		shape_info_vec[c].shape_values_comp[0] = shape_values.begin();
-    		shape_info_vec[c].shape_values_comp[1] = shape_values.begin();
-    		shape_info_vec[c].shape_values_comp[2] = shape_values.begin();
-
-    		shape_info_vec[c].shape_grads_comp[0] = shape_gradients.begin();
-    		shape_info_vec[c].shape_grads_comp[1] = shape_gradients.begin();
-    		shape_info_vec[c].shape_grads_comp[2] = shape_gradients.begin();
-
-    		shape_info_vec[c].shape_hess_comp[0] = shape_hessians.begin();
-    		shape_info_vec[c].shape_hess_comp[1] = shape_hessians.begin();
-    		shape_info_vec[c].shape_hess_comp[2] = shape_hessians.begin();
+    	    for (int d=0; d<dim; d++)
+    	    {
+    	    	shape_gradients[c][d] = this->base_shape_gradients[0].begin();
+    	    	shape_values[c][d] = this->base_shape_values[0].begin();
+    	    	shape_hessians[c][d] = this->base_shape_hessians[0].begin();
+    	    }
     	}
     	//else
     		//TBD

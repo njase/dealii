@@ -396,9 +396,9 @@ void MGTransferMatrixFree<dim,Number>
       if (element_is_continuous)
         {
           typedef internal::EvaluatorTensorProduct<internal::evaluate_general,dim,degree,degree!=-1 ? 2*degree+1 : 0,VectorizedArray<Number> > Evaluator;
-          Evaluator evaluator(prolongation_matrix_1d,
-                              prolongation_matrix_1d,
-                              prolongation_matrix_1d,
+          Evaluator evaluator(prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
                               fe_degree,
                               2*fe_degree+1);
           perform_tensorized_op<dim,Evaluator,Number,true>(evaluator,
@@ -412,9 +412,9 @@ void MGTransferMatrixFree<dim,Number>
       else
         {
           typedef internal::EvaluatorTensorProduct<internal::evaluate_general,dim,degree,2*(degree+1),VectorizedArray<Number> > Evaluator;
-          Evaluator evaluator(prolongation_matrix_1d,
-                              prolongation_matrix_1d,
-                              prolongation_matrix_1d,
+          Evaluator evaluator(prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
                               fe_degree,
                               2*(fe_degree+1));
           perform_tensorized_op<dim,Evaluator,Number,true>(evaluator,
@@ -474,9 +474,9 @@ void MGTransferMatrixFree<dim,Number>
       if (element_is_continuous)
         {
           typedef internal::EvaluatorTensorProduct<internal::evaluate_general,dim,degree,degree!=-1 ? 2*degree+1 : 0,VectorizedArray<Number> > Evaluator;
-          Evaluator evaluator(prolongation_matrix_1d,
-                              prolongation_matrix_1d,
-                              prolongation_matrix_1d,
+          Evaluator evaluator(prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
                               fe_degree,
                               2*fe_degree+1);
           weight_dofs_on_child<dim,degree,Number>(&weights_on_refined[from_level-1][(cell/vec_size)*three_to_dim],
@@ -490,9 +490,9 @@ void MGTransferMatrixFree<dim,Number>
       else
         {
           typedef internal::EvaluatorTensorProduct<internal::evaluate_general,dim,degree,2*(degree+1),VectorizedArray<Number> > Evaluator;
-          Evaluator evaluator(prolongation_matrix_1d,
-                              prolongation_matrix_1d,
-                              prolongation_matrix_1d,
+          Evaluator evaluator(prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
+                              prolongation_matrix_1d.begin(),
                               fe_degree,
                               2*(fe_degree+1));
           perform_tensorized_op<dim,Evaluator,Number,false>(evaluator,

@@ -157,7 +157,7 @@ public:
   /**
    * Return a reference to the ShapeInfo object currently in use.
    */
-  const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
+  const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
       get_shape_info() const;
 
   /**
@@ -619,7 +619,8 @@ protected:
                     const unsigned int            fe_no,
                     const unsigned int            quad_no,
                     const unsigned int            fe_degree,
-                    const unsigned int            n_q_points);
+                    const unsigned int            n_q_points,
+                    const bool use_non_primitive);
 
   /**
    * Constructor that comes with reduced functionality and works similar as
@@ -815,7 +816,7 @@ protected:
    * product. Also contained in matrix_info, but it simplifies code if we
    * store a reference to it.
    */
-  const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> *data;
+  const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *data;
 
   /**
    * A pointer to the Cartesian Jacobian information of the present cell. Only
@@ -946,6 +947,8 @@ protected:
    */
   mutable std::vector<types::global_dof_index> local_dof_indices;
 
+  const bool use_non_primitive;
+
 private:
   /**
    * Sets the pointers for values, gradients, hessians to the central
@@ -992,7 +995,8 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            fe_degree,
-                      const unsigned int            n_q_points);
+                      const unsigned int            n_q_points,
+                      const bool use_non_primitive = false);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1094,7 +1098,8 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            fe_degree,
-                      const unsigned int            n_q_points);
+                      const unsigned int            n_q_points,
+                      const bool use_non_primitive = false);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1233,7 +1238,8 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            dofs_per_cell,
-                      const unsigned int            n_q_points);
+                      const unsigned int            n_q_points,
+                      const bool use_non_primitive = false);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1334,7 +1340,8 @@ protected:
                       const unsigned int          fe_no,
                       const unsigned int          quad_no,
                       const unsigned int          fe_degree,
-                      const unsigned int          n_q_points);
+                      const unsigned int          n_q_points,
+                      const bool use_non_primitive = false);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -2268,7 +2275,8 @@ FEEvaluationBase<dim,n_components_,Number>
                     const unsigned int fe_no_in,
                     const unsigned int quad_no_in,
                     const unsigned int fe_degree,
-                    const unsigned int n_q_points)
+                    const unsigned int n_q_points,
+                    const bool use_non_primitive)
   :
   scratch_data_array (data_in.acquire_scratch_data()),
   quad_no            (quad_no_in),
@@ -2306,7 +2314,8 @@ FEEvaluationBase<dim,n_components_,Number>
   hessians_quad_initialized (false),
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
-  first_selected_component  (0)
+  first_selected_component  (0),
+  use_non_primitive(use_non_primitive)
 {
   set_data_pointers();
   Assert (matrix_info->mapping_initialized() == true,
@@ -2351,7 +2360,7 @@ FEEvaluationBase<dim,n_components_,Number>
   dof_info           (nullptr),
   mapping_info       (nullptr),
   // select the correct base element from the given FE component
-  data               (new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(quadrature, fe, fe.component_to_base_index(first_selected_component).first)),
+  //data               (new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(quadrature, fe, fe.component_to_base_index(first_selected_component).first)),
   cartesian_data     (nullptr),
   jacobian           (nullptr),
   J_value            (nullptr),
@@ -2370,8 +2379,13 @@ FEEvaluationBase<dim,n_components_,Number>
   gradients_quad_submitted  (false),
   // keep the number of the selected component within the current base element
   // for reading dof values
-  first_selected_component  (fe.component_to_base_index(first_selected_component).second)
+  first_selected_component  (fe.component_to_base_index(first_selected_component).second),
+  use_non_primitive(false)
 {
+	data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
+				new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(
+						quadrature, fe, fe.component_to_base_index(first_selected_component).first);
+
   const unsigned int base_element_number =
     fe.component_to_base_index(first_selected_component).first;
   set_data_pointers();
@@ -2412,9 +2426,9 @@ FEEvaluationBase<dim,n_components_,Number>
   matrix_info        (other.matrix_info),
   dof_info           (other.dof_info),
   mapping_info       (other.mapping_info),
-  data               (other.matrix_info == nullptr ?
-                      new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data) :
-                      other.data),
+  //data               (other.matrix_info == nullptr ?
+  //                    new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data) :
+  //                    other.data),
   cartesian_data     (nullptr),
   jacobian           (nullptr),
   J_value            (nullptr),
@@ -2435,8 +2449,27 @@ FEEvaluationBase<dim,n_components_,Number>
   hessians_quad_initialized (false),
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
-  first_selected_component  (other.first_selected_component)
+  first_selected_component  (other.first_selected_component),
+  use_non_primitive(other.use_non_primitive)
 {
+	if (other.matrix_info == nullptr)
+	{
+		if (use_non_primitive)
+		{
+			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
+					new internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>(*other.data);
+		}
+		else
+		{
+			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
+					new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(*other.data);
+		}
+	}
+	else
+	{
+		data = other.data;
+	}
+
   set_data_pointers();
 
   // Create deep copy of mapped geometry for use in parallel...
@@ -2482,9 +2515,19 @@ FEEvaluationBase<dim,n_components_,Number>
   matrix_info = other.matrix_info;
   dof_info = other.dof_info;
   mapping_info = other.mapping_info;
+  use_non_primitive = other.use_non_primitive;
   if (other.matrix_info == nullptr)
     {
-      data = new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data);
+		if (use_non_primitive)
+		{
+			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
+					new internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>(*other.data);
+		}
+		else
+		{
+			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
+					new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(*other.data);
+		}
       scratch_data_array = new AlignedVector<VectorizedArray<Number> >();
     }
   else
@@ -2735,7 +2778,7 @@ FEEvaluationBase<dim,n_components_,Number>::get_cell_type () const
 
 template <int dim, int n_components_, typename Number>
 inline
-const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
+const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
     FEEvaluationBase<dim,n_components_,Number>::get_shape_info() const
 {
   Assert(data != nullptr, ExcInternalError());
@@ -4345,10 +4388,11 @@ FEEvaluationAccess<dim,n_components_,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points)
+                      const unsigned int n_q_points,
+                      const bool use_non_primitive)
   :
   FEEvaluationBase <dim,n_components_,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
 {}
 
 
@@ -4402,10 +4446,11 @@ FEEvaluationAccess<dim,1,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points)
+                      const unsigned int n_q_points,
+                      const bool use_non_primitive)
   :
   FEEvaluationBase <dim,1,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
 {}
 
 
@@ -4653,10 +4698,11 @@ FEEvaluationAccess<dim,dim,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points)
+                      const unsigned int n_q_points,
+                      const bool use_non_primitive)
   :
   FEEvaluationBase <dim,dim,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points,use_non_primitive)
 {}
 
 
@@ -5025,10 +5071,11 @@ FEEvaluationAccess<1,1,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points)
+                      const unsigned int n_q_points,
+                      const bool use_non_primitive)
   :
   FEEvaluationBase <1,1,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
 {}
 
 
@@ -5617,7 +5664,7 @@ FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
   :
    BaseClass (data_in, fe_no, quad_no,
    		  	  numbers::invalid_unsigned_int,
-   		  	numbers::invalid_unsigned_int),
+   		  	numbers::invalid_unsigned_int, true), //use non-primitive
   dofs_per_component (this->data->dofs_per_component_on_cell),
   dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
   n_q_points (this->data->n_q_points)

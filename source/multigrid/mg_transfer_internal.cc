@@ -432,7 +432,7 @@ namespace internal
 
       elem_info.n_child_cell_dofs = elem_info.n_components*Utilities::fixed_power<dim>(n_child_dofs_1d);
       const Quadrature<1> dummy_quadrature(std::vector<Point<1> >(1, Point<1>()));
-      internal::MatrixFreeFunctions::ShapeInfo<Number> shape_info;
+      internal::MatrixFreeFunctions::ShapeInfoScalar<Number> shape_info;
       shape_info.reinit(dummy_quadrature, mg_dof.get_fe(), 0);
       elem_info.lexicographic_numbering = shape_info.lexicographic_numbering;
 
