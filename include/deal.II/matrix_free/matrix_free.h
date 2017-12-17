@@ -295,7 +295,7 @@ public:
   /**
    * Destructor.
    */
-  ~MatrixFree();
+  ~MatrixFree() = default;
 
   /**
    * Extracts the information needed to perform loops over cells. The
@@ -418,17 +418,7 @@ public:
                const QuadratureType                        &quad,
                const AdditionalData                        additional_data = AdditionalData());
 
-  /**
-   * Initializes the data structures for vector valued problems. Same as above, but using
-   * general Quadrature Policy instead of fixed Quadrature rule for each direction
-   */
-  template <typename DoFHandlerType>
-  void reinit (const std::vector<const DoFHandlerType *>   &dof_handler,
-               const std::vector<const ConstraintMatrix *> &constraint,
-               const QuadPolicy                            &q_policy,
-               const AdditionalData                        additional_data = AdditionalData());
-
-  /**
+   /**
    * Copy function. Creates a deep copy of all data structures. It is usually
    * enough to keep the data for different operations once, so this function
    * should not be needed very often.
@@ -853,7 +843,7 @@ public:
   /**
    * Return the unit cell information for given hp index.
    */
-  const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
+  const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
       get_shape_info (const unsigned int fe_component = 0,
                       const unsigned int quad_index   = 0,
                       const unsigned int hp_active_fe_index = 0,
@@ -991,7 +981,7 @@ private:
   /**
    * Contains shape value information on the unit cell.
    */
-  Table<4,internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *> shape_info;
+  Table<4,internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>> shape_info;
 
   /**
    * Describes how the cells are gone through. With the cell level (first
@@ -1468,7 +1458,7 @@ MatrixFree<dim,Number>::get_ghost_set(const unsigned int dof_index) const
 
 template <int dim, typename Number>
 inline
-const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
+const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
     MatrixFree<dim,Number>::get_shape_info (const unsigned int index_fe,
                                             const unsigned int index_quad,
                                             const unsigned int active_fe_index,
@@ -1478,7 +1468,7 @@ const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
   AssertIndexRange (index_quad, shape_info.size(1));
   AssertIndexRange (active_fe_index, shape_info.size(2));
   AssertIndexRange (active_quad_index, shape_info.size(3));
-  return *shape_info(index_fe, index_quad,
+  return shape_info(index_fe, index_quad,
                     active_fe_index, active_quad_index);
 }
 

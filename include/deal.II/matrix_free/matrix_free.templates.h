@@ -54,20 +54,6 @@ MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
   copy_from(other);
 }
 
-//FIXME: Delete all entried in Table of shape_info
-template <int dim, typename Number>
-MatrixFree<dim, Number>::~MatrixFree()
-{
-#if 0
-	size_type n_elements = shape_info.n_elements();
-
-	for (int i=0; i<n_elements; i++)
-		delete shape_info
-#endif
-
-}
-
-//FIXME: Add deep copy for shape_info
 template <int dim, typename Number>
 void MatrixFree<dim,Number>::
 copy_from (const MatrixFree<dim,Number> &v)
@@ -97,10 +83,6 @@ internal_reinit(const Mapping<dim>                          &mapping,
                 const std::vector<hp::QCollection<1> >      &quad,
                 const typename MatrixFree<dim,Number>::AdditionalData additional_data)
 {
-	using BaseShapeinfo = internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>>;
-	using ScalarShapeinfo = internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>;
-	using VectorShapeinfo = internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>;
-
   // Reads out the FE information and stores the shape function values,
   // gradients and Hessians for quadrature points.
   {
@@ -112,13 +94,7 @@ internal_reinit(const Mapping<dim>                          &mapping,
       for (unsigned int nq =0; nq<n_quad; nq++)
         {
           AssertDimension (quad[nq].size(), 1);
-
-          if (use_non_primitive)
-        	  shape_info(no,nq,0,0) = (BaseShapeinfo *)new VectorShapeinfo;
-          else
-        	  shape_info(no,nq,0,0) = (BaseShapeinfo *)new ScalarShapeinfo;
-
-          shape_info(no,nq,0,0)->reinit(quad[nq][0], dof_handler[no]->get_fe());
+          shape_info(no,nq,0,0).reinit(quad[nq][0], dof_handler[no]->get_fe(),0,use_non_primitive);
         }
   }
 
@@ -233,9 +209,6 @@ internal_reinit(const Mapping<dim>                            &mapping,
                 const std::vector<hp::QCollection<1> >        &quad,
                 const typename MatrixFree<dim,Number>::AdditionalData additional_data)
 {
-	using BaseShapeinfo = internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>>;
-	using ScalarShapeinfo = internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>;
-
   // Reads out the FE information and stores the shape function values,
   // gradients and Hessians for quadrature points.
   {
@@ -256,13 +229,8 @@ internal_reinit(const Mapping<dim>                            &mapping,
         for (unsigned int nq =0; nq<n_quad; nq++)
           for (unsigned int q_no=0; q_no<quad[nq].size(); ++q_no)
           {
-              if (use_non_primitive)
-            	  Assert (false, ExcNotImplemented());
-
-            shape_info(no,nq,0,0) = (BaseShapeinfo *)new ScalarShapeinfo;
-
-            shape_info(no,nq,fe_no,q_no)->reinit (quad[nq][q_no],
-                                                 dof_handler[no]->get_fe(fe_no));
+            shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
+                                                 dof_handler[no]->get_fe(fe_no),0,use_non_primitive);
           }
   }
 
@@ -582,7 +550,7 @@ void MatrixFree<dim,Number>::initialize_indices
           dof_info[no].dimension    = dim;
           dof_info[no].n_components = n_fe_components;
 
-          AssertDimension (shape_info(no,0,fe_index,0)->lexicographic_numbering.size(),
+          AssertDimension (shape_info(no,0,fe_index,0).lexicographic_numbering.size(),
                            dof_info[no].dofs_per_cell[fe_index]);
         }
 
@@ -632,7 +600,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,0,0)->lexicographic_numbering,
+                                             shape_info(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -651,7 +619,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (dof_info[no].dofs_per_cell[0]);
               cell_it->get_mg_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,0,0)->lexicographic_numbering,
+                                             shape_info(no,0,0,0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -671,7 +639,7 @@ void MatrixFree<dim,Number>::initialize_indices
               local_dof_indices.resize (cell_it->get_fe().dofs_per_cell);
               cell_it->get_dof_indices(local_dof_indices);
               dof_info[no].read_dof_indices (local_dof_indices,
-                                             shape_info(no,0,cell_it->active_fe_index(),0)->lexicographic_numbering,
+                                             shape_info(no,0,cell_it->active_fe_index(),0).lexicographic_numbering,
                                              *constraint[no], counter,
                                              constraint_values,
                                              cell_at_boundary);
@@ -815,7 +783,6 @@ void MatrixFree<dim,Number>::clear()
 }
 
 
-//FIXME: updatedue to shape_info
 template <int dim, typename Number>
 std::size_t MatrixFree<dim,Number>::memory_consumption () const
 {

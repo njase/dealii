@@ -38,28 +38,32 @@ for (deal_II_dimension : DIMENSIONS)
     internal::MatrixFreeFunctions::ShapeInfo<double>::
     reinit<deal_II_dimension>(const Quadrature<1> &,
                               const FiniteElement<deal_II_dimension,deal_II_dimension> &,
-                              const unsigned int);
+                              const unsigned int,
+                              const bool);
 
     template
     void
     internal::MatrixFreeFunctions::ShapeInfo<float>::
     reinit<deal_II_dimension>(const Quadrature<1> &,
                               const FiniteElement<deal_II_dimension,deal_II_dimension> &,
-                              const unsigned int);
+                              const unsigned int,
+                              const bool);
 
     template
     void
     internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<double> >::
     reinit<deal_II_dimension>(const Quadrature<1> &,
                               const FiniteElement<deal_II_dimension,deal_II_dimension> &,
-                              const unsigned int);
+                              const unsigned int,
+                              const bool);
 
     template
     void
     internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<float > >::
     reinit<deal_II_dimension>(const Quadrature<1> &,
                               const FiniteElement<deal_II_dimension,deal_II_dimension> &,
-                              const unsigned int);
+                              const unsigned int,
+                              const bool);
 #endif
 }
 

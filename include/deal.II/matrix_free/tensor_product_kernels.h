@@ -85,21 +85,6 @@ namespace internal
     /**
      * Constructor, taking the data from ShapeInfo
      */
-#if 0
-    EvaluatorTensorProduct (const AlignedVector<Number>::iterator &shape_values,
-                            const AlignedVector<Number>::iterator &shape_gradients,
-                            const AlignedVector<Number>::iterator &shape_hessians,
-                            const unsigned int           dummy1 = 0,
-                            const unsigned int           dummy2 = 0)
-      :
-      shape_values (shape_values), //.begin()),
-      shape_gradients (shape_gradients), //.begin()),
-      shape_hessians (shape_hessians) //.begin())
-    :
-    shape_values (shape_values), //.begin()),
-    shape_gradients (shape_gradients), //.begin()),
-    shape_hessians (shape_hessians) //.begin())
-#endif
     template <typename ShapeIterator>
     EvaluatorTensorProduct (const ShapeIterator &shape_values,
     						const ShapeIterator &shape_gradients,

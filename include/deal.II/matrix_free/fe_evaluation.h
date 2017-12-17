@@ -157,7 +157,7 @@ public:
   /**
    * Return a reference to the ShapeInfo object currently in use.
    */
-  const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
+  const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
       get_shape_info() const;
 
   /**
@@ -816,7 +816,7 @@ protected:
    * product. Also contained in matrix_info, but it simplifies code if we
    * store a reference to it.
    */
-  const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *data;
+  const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> *data;
 
   /**
    * A pointer to the Cartesian Jacobian information of the present cell. Only
@@ -2360,7 +2360,7 @@ FEEvaluationBase<dim,n_components_,Number>
   dof_info           (nullptr),
   mapping_info       (nullptr),
   // select the correct base element from the given FE component
-  //data               (new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(quadrature, fe, fe.component_to_base_index(first_selected_component).first)),
+  data               (new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(quadrature, fe, fe.component_to_base_index(first_selected_component).first)),
   cartesian_data     (nullptr),
   jacobian           (nullptr),
   J_value            (nullptr),
@@ -2382,10 +2382,6 @@ FEEvaluationBase<dim,n_components_,Number>
   first_selected_component  (fe.component_to_base_index(first_selected_component).second),
   use_non_primitive(false)
 {
-	data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
-				new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(
-						quadrature, fe, fe.component_to_base_index(first_selected_component).first);
-
   const unsigned int base_element_number =
     fe.component_to_base_index(first_selected_component).first;
   set_data_pointers();
@@ -2426,9 +2422,9 @@ FEEvaluationBase<dim,n_components_,Number>
   matrix_info        (other.matrix_info),
   dof_info           (other.dof_info),
   mapping_info       (other.mapping_info),
-  //data               (other.matrix_info == nullptr ?
-  //                    new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data) :
-  //                    other.data),
+  data               (other.matrix_info == nullptr ?
+                      new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data) :
+                      other.data),
   cartesian_data     (nullptr),
   jacobian           (nullptr),
   J_value            (nullptr),
@@ -2452,24 +2448,6 @@ FEEvaluationBase<dim,n_components_,Number>
   first_selected_component  (other.first_selected_component),
   use_non_primitive(other.use_non_primitive)
 {
-	if (other.matrix_info == nullptr)
-	{
-		if (use_non_primitive)
-		{
-			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
-					new internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>(*other.data);
-		}
-		else
-		{
-			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
-					new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(*other.data);
-		}
-	}
-	else
-	{
-		data = other.data;
-	}
-
   set_data_pointers();
 
   // Create deep copy of mapped geometry for use in parallel...
@@ -2518,16 +2496,7 @@ FEEvaluationBase<dim,n_components_,Number>
   use_non_primitive = other.use_non_primitive;
   if (other.matrix_info == nullptr)
     {
-		if (use_non_primitive)
-		{
-			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
-					new internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>(*other.data);
-		}
-		else
-		{
-			data = (internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> *)
-					new internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>(*other.data);
-		}
+	  data = new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data);
       scratch_data_array = new AlignedVector<VectorizedArray<Number> >();
     }
   else
@@ -2778,7 +2747,7 @@ FEEvaluationBase<dim,n_components_,Number>::get_cell_type () const
 
 template <int dim, int n_components_, typename Number>
 inline
-const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
+const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &
     FEEvaluationBase<dim,n_components_,Number>::get_shape_info() const
 {
   Assert(data != nullptr, ExcInternalError());

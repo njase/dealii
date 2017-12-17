@@ -76,20 +76,6 @@ namespace internal
       tensor_symmetric_plus_dg0 = 5
     };
 
-    template <typename Number>
-    struct ShapeInfoBase
-    {
-    	ElementType element_type;
-    	unsigned int fe_degree;
-    	unsigned int n_q_points_1d;
-    	std::vector<unsigned int> lexicographic_numbering;
-
-    	ShapeInfoBase(const ElementType element_type,
-    			const unsigned int fe_degree,
-    			const unsigned int n_q_points_1d);
-
-    };
-
     /**
      * The class that stores the shape functions, gradients and Hessians
      * evaluated for a tensor product finite element and tensor product
@@ -99,25 +85,24 @@ namespace internal
      * @author Katharina Kormann and Martin Kronbichler, 2010, 2011
      */
     template <typename Number>
-    struct ShapeInfoScalar:public ShapeInfoBase<Number>
+    struct ShapeInfo
     {
-    	using ShapeInfoBase<Number>::fe_degree;
-    	using ShapeInfoBase<Number>::element_type;
-    	using ShapeInfoBase<Number>::n_q_points_1d;
-    	using ShapeInfoBase<Number>::lexicographic_numbering;
+    	using ShapeVector = AlignedVector<Number>;
+    	using ShapeIterator = typename ShapeVector::iterator;
 
       /**
        * Empty constructor. Does nothing.
        */
-    	ShapeInfoScalar ();
+    	ShapeInfo ();
 
       /**
        * Constructor that initializes the data fields using the reinit method.
        */
       template <int dim>
-      ShapeInfoScalar (const Quadrature<1> &quad,
+      ShapeInfo (const Quadrature<1> &quad,
                  const FiniteElement<dim> &fe,
-                 const unsigned int base_element = 0);
+                 const unsigned int base_element = 0,
+                 const bool use_non_primitive=false);
 
       /**
        * Initializes the data fields. Takes a one-dimensional quadrature
@@ -130,19 +115,41 @@ namespace internal
       template <int dim>
       void reinit (const Quadrature<1> &quad,
                    const FiniteElement<dim> &fe_dim,
-                   const unsigned int base_element = 0);
+                   const unsigned int base_element = 0,
+                   const bool use_non_primitive=false);
 
       /**
        * Return the memory consumption of this class in bytes.
        */
       std::size_t memory_consumption () const;
 
+    private:
+      //Shape values - basis shape values - as of now, max 2 are required (for RT)
+      std::vector<ShapeVector> base_shape_values;
+      std::vector<ShapeVector> base_shape_gradients;
+      std::vector<ShapeVector> base_shape_hessians;
+
+      template <int dim>
+      void internal_reinit_scalar (const Quadrature<1> &quad,
+                   const FiniteElement<dim> &fe_dim,
+                   const unsigned int base_element);
+
+      template <int dim>
+            void internal_reinit_vector (const Quadrature<1> &quad,
+                         const FiniteElement<dim> &fe_dim,
+                         const unsigned int base_element);
+
+    public:
       /**
        * Encodes the type of element detected at construction. FEEvaluation
        * will select the most efficient algorithm based on the given element
        * type.
        */
-      //ElementType element_type;
+      ElementType element_type;
+
+      //Vector of components. Vector size = no of components
+      //These are now used as component wise shape_values
+      //they pick up permutations from base_shape_values for each direction in a component
 
       /**
        * Stores the shape values of the 1D finite element evaluated on all 1D
@@ -152,6 +159,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_values;
+      std::vector<std::array<ShapeIterator,3>> shape_values_vec;
 
       /**
        * Stores the shape gradients of the 1D finite element evaluated on all
@@ -161,6 +169,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_gradients;
+      std::vector<std::array<ShapeIterator,3>> shape_gradients_vec;
 
       /**
        * Stores the shape Hessians of the 1D finite element evaluated on all
@@ -170,6 +179,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_hessians;
+      std::vector<std::array<ShapeIterator,3>> shape_hessians_vec;
 
       /**
        * Stores the shape values in a different format, namely the so-called
@@ -238,17 +248,17 @@ namespace internal
        * renumbering starts with a lexicographic numbering of the first
        * component, then everything of the second component, and so on.
        */
-      //std::vector<unsigned int> lexicographic_numbering;
+      std::vector<unsigned int> lexicographic_numbering;
 
       /**
        * Stores the degree of the element.
        */
-      //unsigned int fe_degree;
+      unsigned int fe_degree;
 
       /**
        * Stores the number of quadrature points per dimension.
        */
-      //unsigned int n_q_points_1d;
+      unsigned int n_q_points_1d;
 
       /**
        * Stores the number of quadrature points in @p dim dimensions for a
@@ -370,72 +380,26 @@ namespace internal
       bool check_1d_shapes_collocation();
     };
 
-
-    //Polymorphism of ShapeInfoVector is only to make use of existing implementation as much as possible
-    template <typename Number>
-    struct ShapeInfoVector:public ShapeInfoBase<Number>
-    {
-    	using ShapeInfoBase<Number>::fe_degree;
-    	using ShapeInfoBase<Number>::element_type;
-    	using ShapeInfoBase<Number>::n_q_points_1d;
-    	using ShapeInfoBase<Number>::lexicographic_numbering;
-
-
-    	using ShapeVector = AlignedVector<Number>;
-    	using ShapeIterator = typename ShapeVector::iterator;
-
-    private:
-        //Shape values - basis shape values - as of now, max 2 are required (for RT)
-        std::vector<ShapeVector> base_shape_values;
-        std::vector<ShapeVector> base_shape_gradients;
-        std::vector<ShapeVector> base_shape_hessians;
-
-    public:
-        //Vector of components. Vector size = no of components
-        //These are now used as component wise shape_values
-        //they pick up permutations from base_shape_values for each direction in a component
-        std::vector<std::array<ShapeIterator,3>> shape_values;
-        std::vector<std::array<ShapeIterator,3>> shape_gradients;
-        std::vector<std::array<ShapeIterator,3>> shape_hessians;
-
-        /**
-         * Empty constructor. Does nothing.
-         */
-    	ShapeInfoVector ();
-
-        template <int dim>
-        void reinit (const Quadrature<1> &quad,
-                     const FiniteElement<dim> &fe_dim,
-                     const unsigned int base_element = 0);
-
-    };
-
     // ------------------------------------------ inline functions
-
-    template <typename Number>
-    inline
-    ShapeInfoBase<Number>::ShapeInfoBase(ElementType element_type,
-			unsigned int fe_degree,
-			unsigned int n_q_points_1d)
-			: element_type(element_type), fe_degree(fe_degree), n_q_points_1d(n_q_points_1d)
-	{ }
-
 
     template <typename Number>
     template <int dim>
     inline
-    ShapeInfoScalar<Number>::ShapeInfoScalar (const Quadrature<1> &quad,
+    ShapeInfo<Number>::ShapeInfo (const Quadrature<1> &quad,
                                   const FiniteElement<dim> &fe_in,
-                                  const unsigned int base_element_number)
+                                  const unsigned int base_element_number,
+                                  bool use_non_primitive)
       :
-      ShapeInfoBase<Number>(tensor_general,0,0),
+      element_type(tensor_general),
+      fe_degree(0),
+      n_q_points_1d(0),
       n_q_points (0),
       dofs_per_component_on_cell (0),
       n_q_points_face (0),
       dofs_per_component_on_face (0),
       nodal_at_cell_boundaries (false)
     {
-      reinit (quad, fe_in, base_element_number);
+      reinit (quad, fe_in, base_element_number,use_non_primitive);
     }
   } // end of namespace MatrixFreeFunctions
 
