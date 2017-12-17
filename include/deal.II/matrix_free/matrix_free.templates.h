@@ -97,9 +97,9 @@ internal_reinit(const Mapping<dim>                          &mapping,
                 const std::vector<hp::QCollection<1> >      &quad,
                 const typename MatrixFree<dim,Number>::AdditionalData additional_data)
 {
-	using internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> = BaseShapeinfo;
-	using internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>> = ScalarShapeinfo;
-	using internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>> = VectorShapeinfo;
+	using BaseShapeinfo = internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>>;
+	using ScalarShapeinfo = internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>;
+	using VectorShapeinfo = internal::MatrixFreeFunctions::ShapeInfoVector<VectorizedArray<Number>>;
 
   // Reads out the FE information and stores the shape function values,
   // gradients and Hessians for quadrature points.
@@ -233,8 +233,8 @@ internal_reinit(const Mapping<dim>                            &mapping,
                 const std::vector<hp::QCollection<1> >        &quad,
                 const typename MatrixFree<dim,Number>::AdditionalData additional_data)
 {
-	using internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> = BaseShapeinfo;
-	using internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>> = ScalarShapeinfo;
+	using BaseShapeinfo = internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>>;
+	using ScalarShapeinfo = internal::MatrixFreeFunctions::ShapeInfoScalar<VectorizedArray<Number>>;
 
   // Reads out the FE information and stores the shape function values,
   // gradients and Hessians for quadrature points.

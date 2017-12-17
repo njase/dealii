@@ -1474,10 +1474,10 @@ const internal::MatrixFreeFunctions::ShapeInfoBase<VectorizedArray<Number>> &
                                             const unsigned int active_fe_index,
                                             const unsigned int active_quad_index) const
 {
-  AssertIndexRange (index_fe, shape_info->size(0));
-  AssertIndexRange (index_quad, shape_info->size(1));
-  AssertIndexRange (active_fe_index, shape_info->size(2));
-  AssertIndexRange (active_quad_index, shape_info->size(3));
+  AssertIndexRange (index_fe, shape_info.size(0));
+  AssertIndexRange (index_quad, shape_info.size(1));
+  AssertIndexRange (active_fe_index, shape_info.size(2));
+  AssertIndexRange (active_quad_index, shape_info.size(3));
   return *shape_info(index_fe, index_quad,
                     active_fe_index, active_quad_index);
 }

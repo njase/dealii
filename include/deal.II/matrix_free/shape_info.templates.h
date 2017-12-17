@@ -37,7 +37,6 @@ namespace internal
 {
   namespace MatrixFreeFunctions
   {
-
     // ----------------- actual ShapeInfo functions --------------------
 
     namespace
@@ -184,7 +183,7 @@ namespace internal
       dofs_per_component_on_cell = fe->dofs_per_cell;
       dofs_per_component_on_face = dim>1?Utilities::fixed_power<dim-1>(fe_degree+1):1;
 
-      const unsigned int array_size = n_dofs_1d*n_q_points_1d;
+      const unsigned int array_size = n_dofs_1d*(n_q_points_1d);
 
       this->shape_gradients.resize_fast (array_size);
       this->shape_values.resize_fast (array_size);
@@ -204,7 +203,7 @@ namespace internal
           // need to reorder from hierarchical to lexicographic to get the
           // DoFs correct
           const unsigned int my_i = scalar_lexicographic[i];
-          for (unsigned int q=0; q<n_q_points_1d; ++q)
+          for (unsigned int q=0; q<(n_q_points_1d); ++q)
             {
               Point<dim> q_point = unit_point;
               q_point[0] = quad.get_points()[q][0];
@@ -541,10 +540,9 @@ namespace internal
 
     template <typename Number>
     template <int dim>
-    void
-    void ShapeInfoVector::reinit (const Quadrature<1> &quad,
-                 const FiniteElement<dim> &fe_dim,
-                 const unsigned int base_element = 0)
+    void ShapeInfoVector<Number>::reinit (const Quadrature<1> &quad,
+                 const FiniteElement<dim> &fe_in,
+                 const unsigned int base_element_number)
     {
     	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
     	FEName fe_name = FEName::FE_Unknown;
@@ -560,10 +558,10 @@ namespace internal
          * perform reinit for all the components as:
 		 *   Mix and match results from basic_shape_values to shape_values_component as needed
          */
-    	unsigned int vector_n_components = fe_dim.n_components();
+    	unsigned int vector_n_components = fe_in.n_components();
 
     	//Find out type of FE as RT or from 1-D tensor product based
-    	const FiniteElement<dim> *fe = fe_dim.base_element(base_element);
+    	const FiniteElement<dim> *fe = fe_in.base_element(base_element_number);
 
     	const FE_RaviartThomas<dim> *fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
     	const FE_Q<dim> *fe_gen = dynamic_cast<const FE_Q<dim> *>(fe);
@@ -595,7 +593,7 @@ namespace internal
 
 
     	//Evaluation for FE_Q_TP in 1-d direction
-        const FiniteElement<dim> *fe = &fe_in; //.base_element(base_element_number);
+        //const FiniteElement<dim> *fe = &fe_in.base_element(base_element_number);
 
         //Assert (fe->n_components() == 1,
         //        ExcMessage("FEEvaluation only works for scalar finite elements."));
@@ -728,7 +726,7 @@ namespace internal
         //this->hessians_within_subface[1].resize(array_size);
 
         FE_Q<1> temp_fe(fe_degree);
-        for (unsigned int my_i=0; i<n_dofs_1d; ++i)
+        for (unsigned int i=0; i<n_dofs_1d; ++i)
           {
             // need to reorder from hierarchical to lexicographic to get the
             // DoFs correct
@@ -739,9 +737,9 @@ namespace internal
                 Point<dim> q_point = unit_point;
                 q_point[0] = quad.get_points()[q][0];
 
-                base_shape_values[0][i*n_q_points_1d+q] = temp_fe->shape_value(my_i,q_point);
-                base_shape_gradients[0][i*n_q_points_1d+q] = temp_fe->shape_grad(my_i,q_point)[0];
-                base_shape_hessians[0][i*n_q_points_1d+q] = temp_fe->shape_grad_grad(my_i,q_point)[0][0];
+                base_shape_values[0][i*n_q_points_1d+q] = temp_fe.shape_value(i,q_point);
+                base_shape_gradients[0][i*n_q_points_1d+q] = temp_fe.shape_grad(i,q_point)[0];
+                base_shape_hessians[0][i*n_q_points_1d+q] = temp_fe.shape_grad_grad(i,q_point)[0][0];
 
 #if 0
                 // evaluate basis functions on the two 1D subfaces (i.e., at the
@@ -902,30 +900,27 @@ namespace internal
           }
 #endif
 
-    }
+	    shape_values.resize(vector_n_components);
+    	shape_gradients.resize(vector_n_components);
+	    shape_hessians.resize(vector_n_components);
 
 
-    this->shape_values.resize(vector_n_components);
-    this->shape_gradients.resize(vector_n_components);
-    this->shape_hessians.resize(vector_n_components);
-
-
-    for (int c=0; c<vector_n_components; c++)
-    {
-    	if (FEName::FE_Q_TP == fe_name)
-    	{
-    	    for (int d=0; d<dim; d++)
-    	    {
-    	    	shape_gradients[c][d] = this->base_shape_gradients[0].begin();
-    	    	shape_values[c][d] = this->base_shape_values[0].begin();
-    	    	shape_hessians[c][d] = this->base_shape_hessians[0].begin();
-    	    }
+    	for (int c=0; c<vector_n_components; c++)
+	    {
+    		if (FEName::FE_Q_TP == fe_name)
+    		{
+    	    	for (int d=0; d<dim; d++)
+	    	    {
+    		    	shape_gradients[c][d] = this->base_shape_gradients[0].begin();
+    		    	shape_values[c][d] = this->base_shape_values[0].begin();
+    	    		shape_hessians[c][d] = this->base_shape_hessians[0].begin();
+	    	    }
+    		}
+    		//else
+    			//TBD
+	    	//For RT, add
     	}
-    	//else
-    		//TBD
-    	//For RT, add
-    }
-
+	}
   } // end of namespace MatrixFreeFunctions
 } // end of namespace internal
 

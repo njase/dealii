@@ -79,10 +79,10 @@ namespace internal
     template <typename Number>
     struct ShapeInfoBase
     {
-    public:
     	ElementType element_type;
     	unsigned int fe_degree;
     	unsigned int n_q_points_1d;
+    	std::vector<unsigned int> lexicographic_numbering;
 
     	ShapeInfoBase(const ElementType element_type,
     			const unsigned int fe_degree,
@@ -101,6 +101,11 @@ namespace internal
     template <typename Number>
     struct ShapeInfoScalar:public ShapeInfoBase<Number>
     {
+    	using ShapeInfoBase<Number>::fe_degree;
+    	using ShapeInfoBase<Number>::element_type;
+    	using ShapeInfoBase<Number>::n_q_points_1d;
+    	using ShapeInfoBase<Number>::lexicographic_numbering;
+
       /**
        * Empty constructor. Does nothing.
        */
@@ -233,7 +238,7 @@ namespace internal
        * renumbering starts with a lexicographic numbering of the first
        * component, then everything of the second component, and so on.
        */
-      std::vector<unsigned int> lexicographic_numbering;
+      //std::vector<unsigned int> lexicographic_numbering;
 
       /**
        * Stores the degree of the element.
@@ -370,6 +375,12 @@ namespace internal
     template <typename Number>
     struct ShapeInfoVector:public ShapeInfoBase<Number>
     {
+    	using ShapeInfoBase<Number>::fe_degree;
+    	using ShapeInfoBase<Number>::element_type;
+    	using ShapeInfoBase<Number>::n_q_points_1d;
+    	using ShapeInfoBase<Number>::lexicographic_numbering;
+
+
     	using ShapeVector = AlignedVector<Number>;
     	using ShapeIterator = typename ShapeVector::iterator;
 
