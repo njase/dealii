@@ -916,6 +916,8 @@ namespace internal
     const EvaluatorVariant variant =
       EvaluatorSelector<type,(max_fe_degree+n_q_points_1d>4)>::variant;
 
+    const AlignedVector<VectorizedArray<Number> > empty;
+
     VectorizedArray<Number> **values_dofs = values_dofs_actual;
 	VectorizedArray<Number> *expanded_dof_values[n_components];
     VectorizedArray<Number> *temp1;
@@ -924,14 +926,14 @@ namespace internal
     typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
-    for (unsigned int c=0; c<n_components; c++)
-    {
-    Eval eval (shape_info.shape_values_vec[c],
-               shape_info.shape_gradients_vec[c],
-               shape_info.shape_hessians_vec[c],
+    Eval eval (empty.begin(),
+    		   empty.begin(),
+               empty.begin(),
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
+    for (unsigned int c=0; c<n_components; c++)
+    {
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?
                                       Eval::dofs_per_cell : Eval::n_q_points);
@@ -997,11 +999,11 @@ namespace internal
         //for (unsigned int c=0; c<n_components; c++)
          // {
             if (evaluate_values == true)
-              eval.template values<0,true,false> (values_dofs[c], values_quad[c]);
+              eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], values_quad[c]);
             if (evaluate_gradients == true)
-              eval.template gradients<0,true,false>(values_dofs[c], gradients_quad[c][0]);
+              eval.template apply<0,true,false>(shape_info.shape_gradients_vec[c][0],values_dofs[c], gradients_quad[c][0]);
             if (evaluate_hessians == true)
-              eval.template hessians<0,true,false> (values_dofs[c], hessians_quad[c][0]);
+              eval.template apply<0,true,false> (shape_info.shape_hessians_vec[c][0],values_dofs[c], hessians_quad[c][0]);
           //}
         break;
 
@@ -1011,33 +1013,33 @@ namespace internal
             // grad x
             if (evaluate_gradients == true)
               {
-                eval.template gradients<0,true,false> (values_dofs[c], temp1);
-                eval.template values<1,true,false> (temp1, gradients_quad[c][0]);
+                eval.template apply<0,true,false> (shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+                eval.template apply<1,true,false> (shape_info.shape_values_vec[c][0],temp1, gradients_quad[c][0]);
               }
             if (evaluate_hessians == true)
               {
                 // grad xy
                 if (evaluate_gradients == false)
-                  eval.template gradients<0,true,false>(values_dofs[c], temp1);
-                eval.template gradients<1,true,false>  (temp1, hessians_quad[c][d1+d1]);
+                  eval.template apply<0,true,false>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+                eval.template apply<1,true,false>  (shape_info.shape_gradients_vec[c][1],temp1, hessians_quad[c][d1+d1]);
 
                 // grad xx
-                eval.template hessians<0,true,false>(values_dofs[c], temp1);
-                eval.template values<1,true,false>  (temp1, hessians_quad[c][0]);
+                eval.template apply<0,true,false>(shape_info.shape_hessians_vec[c][0],values_dofs[c], temp1);
+                eval.template apply<1,true,false>(shape_info.shape_values_vec[c][0],temp1, hessians_quad[c][0]);
               }
 
             // grad y
-            eval.template values<0,true,false> (values_dofs[c], temp1);
+            eval.template apply<0,true,false> (shape_info.shape_values_vec[c][1],values_dofs[c], temp1);
             if (evaluate_gradients == true)
-              eval.template gradients<1,true,false> (temp1, gradients_quad[c][d1]);
+              eval.template apply<1,true,false> (shape_info.shape_gradients_vec[c][1],temp1, gradients_quad[c][d1]);
 
             // grad yy
             if (evaluate_hessians == true)
-              eval.template hessians<1,true,false> (temp1, hessians_quad[c][d1]);
+              eval.template apply<1,true,false> (shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
 
             // val: can use values applied in x
             if (evaluate_values == true)
-              eval.template values<1,true,false> (temp1, values_quad[c]);
+              eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, values_quad[c]);
           //}
         break;
 
