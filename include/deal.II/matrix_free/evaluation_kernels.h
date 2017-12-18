@@ -1014,9 +1014,9 @@ namespace internal
             if (evaluate_gradients == true)
               {
                 eval.template apply<0,true,false> (shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
-                eval.template apply<1,true,false> (shape_info.shape_values_vec[c][0],temp1, gradients_quad[c][0]);
+                eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, gradients_quad[c][0]);
               }
-            if (evaluate_hessians == true)
+            if (evaluate_hessians == true) //FIXME
               {
                 // grad xy
                 if (evaluate_gradients == false)
@@ -1029,12 +1029,12 @@ namespace internal
               }
 
             // grad y
-            eval.template apply<0,true,false> (shape_info.shape_values_vec[c][1],values_dofs[c], temp1);
+            eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
             if (evaluate_gradients == true)
               eval.template apply<1,true,false> (shape_info.shape_gradients_vec[c][1],temp1, gradients_quad[c][d1]);
 
             // grad yy
-            if (evaluate_hessians == true)
+            if (evaluate_hessians == true) //FIXME
               eval.template apply<1,true,false> (shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
 
             // val: can use values applied in x
@@ -1043,6 +1043,7 @@ namespace internal
           //}
         break;
 
+#if 0 //FIXME TBD
       case 3:
         //for (unsigned int c=0; c<n_components; c++)
          // {
@@ -1109,7 +1110,7 @@ namespace internal
               eval.template values<2,true,false> (temp2, values_quad[c]);
         //  }
         break;
-
+#endif
       default:
         AssertThrow(false, ExcNotImplemented());
       }
@@ -1140,6 +1141,8 @@ namespace internal
     const EvaluatorVariant variant =
       EvaluatorSelector<type,(max_fe_degree+n_q_points_1d>4)>::variant;
 
+    const AlignedVector<VectorizedArray<Number> > empty;
+
     // expand dof_values to tensor product for truncated tensor products
     VectorizedArray<Number> **values_dofs = values_dofs_actual;
     VectorizedArray<Number> *expanded_dof_values[n_components];
@@ -1149,14 +1152,14 @@ namespace internal
     typedef EvaluatorTensorProduct<variant, dim, max_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
+    Eval eval (empty.begin(),
+    		   	  empty.begin(),
+			   	  empty.begin(),
+                  shape_info.fe_degree,
+                  shape_info.n_q_points_1d);
+
     for (unsigned int c=0; c<n_components; c++)
     {
-     Eval eval (shape_info.shape_values_vec[c],
-                   shape_info.shape_gradients_vec[c],
-                   shape_info.shape_hessians_vec[c],
-                   shape_info.fe_degree,
-                   shape_info.n_q_points_1d);
-
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?
                                       Eval::dofs_per_cell : Eval::n_q_points);
@@ -1195,46 +1198,47 @@ namespace internal
         //for (unsigned int c=0; c<n_components; c++)
          // {
             if (integrate_values == true)
-              eval.template values<0,false,false> (values_quad[c], values_dofs[c]);
+              eval.template apply<0,false,false> (shape_info.shape_values_vec[c][0],values_quad[c], values_dofs[c]);
             if (integrate_gradients == true)
               {
                 if (integrate_values == true)
-                  eval.template gradients<0,false,true> (gradients_quad[c][0], values_dofs[c]);
+                  eval.template apply<0,false,true> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
                 else
-                  eval.template gradients<0,false,false> (gradients_quad[c][0], values_dofs[c]);
+                  eval.template apply<0,false,false> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
               }
          // }
         break;
 
-      case 2:
+      case 2: //FIXME TBD
         //for (unsigned int c=0; c<n_components; c++)
          // {
             if (integrate_values == true)
               {
                 // val
-                eval.template values<0,false,false> (values_quad[c], temp1);
+                eval.template apply<0,false,false> (shape_info.shape_values_vec[c][0],values_quad[c], temp1);
                 //grad x
                 if (integrate_gradients == true)
-                  eval.template gradients<0,false,true> (gradients_quad[c][0], temp1);
-                eval.template values<1,false,false>(temp1, values_dofs[c]);
+                  eval.template apply<0,false,true> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                eval.template apply<1,false,false>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
               }
             if (integrate_gradients == true)
               {
                 // grad y
-                eval.template values<0,false,false>  (gradients_quad[c][d1], temp1);
+                eval.template apply<0,false,false>  (shape_info.shape_values_vec[c][0],gradients_quad[c][d1], temp1);
                 if (integrate_values == false)
                   {
-                    eval.template gradients<1,false,false>(temp1, values_dofs[c]);
+                    eval.template apply<1,false,false>(shape_info.shape_gradients_vec[c][1],temp1, values_dofs[c]);
                     //grad x
-                    eval.template gradients<0,false,false> (gradients_quad[c][0], temp1);
-                    eval.template values<1,false,true> (temp1, values_dofs[c]);
+                    eval.template apply<0,false,false> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                    eval.template apply<1,false,true> (shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
                   }
                 else
-                  eval.template gradients<1,false,true>(temp1, values_dofs[c]);
+                  eval.template apply<1,false,true>(shape_info.shape_gradients_vec[c][1],temp1, values_dofs[c]);
               }
         //  }
         break;
 
+#if 0 //FIXME TBD
       case 3:
         //for (unsigned int c=0; c<n_components; c++)
          // {
@@ -1270,6 +1274,7 @@ namespace internal
               }
          // }
         break;
+#endif
 
       default:
         AssertThrow(false, ExcNotImplemented());
