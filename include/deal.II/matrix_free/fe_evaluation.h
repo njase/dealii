@@ -2071,7 +2071,7 @@ private:
 };
 
 
- template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number >
+ template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number >
  class FEEvaluationGen : public FEEvaluationAccess<dim, get_n_comp<FEType,dim>::n_components,Number>
  {
  public:
@@ -5623,10 +5623,10 @@ FEEvaluation<dim,fe_degree,n_q_points_1d,n_components_,Number>
 
 /*-------------------------- FEEvaluationGen -----------------------------------*/
 
-template <typename FEType, QuadPolicy q_policy, int dim,
+template <typename FEType, int n_q_points_1d, int dim,
 			int base_fe_degree, typename Number >
 inline
-FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
+FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
 ::FEEvaluationGen (const MatrixFree<dim,Number> &data_in,
                 const unsigned int fe_no,
                 const unsigned int quad_no)
@@ -5642,11 +5642,11 @@ FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
 }
 
 
-template <typename FEType, QuadPolicy q_policy, int dim,
+template <typename FEType, int n_q_points_1d, int dim,
 			int base_fe_degree, typename Number >
 inline
 void
-FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
+FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
 ::evaluate (const bool evaluate_values,
             const bool evaluate_gradients,
             const bool evaluate_hessians)
@@ -5656,7 +5656,7 @@ FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
   Assert(this->matrix_info != nullptr ||
          this->mapped_geometry->is_initialized(), ExcNotInitialized());
 
-  SelectEvaluatorGen<FEType, q_policy, dim, base_fe_degree, Number>
+  SelectEvaluatorGen<FEType, n_q_points_1d, dim, base_fe_degree, Number>
   ::evaluate (*this->data, &this->values_dofs[0], this->values_quad,
               this->gradients_quad, this->hessians_quad, this->scratch_data,
               evaluate_values, evaluate_gradients, evaluate_hessians);
@@ -5673,11 +5673,11 @@ FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
 
 
 
-template <typename FEType, QuadPolicy q_policy, int dim,
+template <typename FEType, int n_q_points_1d, int dim,
 			int base_fe_degree, typename Number >
 inline
 void
-FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
+FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
 ::integrate (const bool integrate_values,
              const bool integrate_gradients)
 {
@@ -5690,7 +5690,7 @@ FEEvaluationGen<FEType,q_policy,dim,base_fe_degree,Number>
   Assert(this->matrix_info != nullptr ||
          this->mapped_geometry->is_initialized(), ExcNotInitialized());
 
-  SelectEvaluatorGen<FEType, q_policy, dim, base_fe_degree, Number>
+  SelectEvaluatorGen<FEType, n_q_points_1d, dim, base_fe_degree, Number>
   ::integrate (*this->data, &this->values_dofs[0], this->values_quad,
                this->gradients_quad, this->scratch_data,
                integrate_values, integrate_gradients);

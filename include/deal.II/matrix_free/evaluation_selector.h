@@ -378,7 +378,7 @@ struct SelectEvaluator<dim, -1, n_q_points_1d, n_components, Number>
 };
 
 
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 struct SelectEvaluatorGen
 {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
@@ -402,7 +402,7 @@ struct SelectEvaluatorGen
 	                        const bool               integrate_gradients);
 };
 
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 struct SelectEvaluatorAnisotropic
 {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
@@ -655,10 +655,10 @@ SelectEvaluator<dim, -1, dummy, n_components, Number>::integrate
 }
 
 
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 inline
 void
-SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
+SelectEvaluatorGen<FEType, n_q_points_1d,dim,base_fe_degree,Number>::evaluate
 	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	 VectorizedArray<Number> *values_dofs_actual[],
 	 VectorizedArray<Number> *values_quad[],
@@ -672,7 +672,7 @@ SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 	if (get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
 	{
 			//Old style SelectEvaluator
-			SelectEvaluator<dim, base_fe_degree, get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
+			SelectEvaluator<dim, base_fe_degree, n_q_points_1d,
 						n_components, Number>
 			::evaluate (shape_info, values_dofs_actual, values_quad,
 			              gradients_quad, hessians_quad, scratch_data,
@@ -680,7 +680,7 @@ SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 	}
 	else//new style when FEType is RaviartThomas or something
 	{
-			SelectEvaluatorAnisotropic<FEType, q_policy, dim, base_fe_degree, Number>
+			SelectEvaluatorAnisotropic<FEType, n_q_points_1d, dim, base_fe_degree, Number>
 			::evaluate (shape_info, values_dofs_actual, values_quad,
 	              gradients_quad, hessians_quad, scratch_data,
 	              evaluate_values, evaluate_gradients, evaluate_hessians);
@@ -688,10 +688,10 @@ SelectEvaluatorGen<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 }
 
 
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 inline
 void
-SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
+SelectEvaluatorGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>::integrate
 		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
@@ -703,7 +703,7 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 	if (get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
 	{
 		//Old style SelectEvaluator
-		SelectEvaluator<dim, base_fe_degree, get_quad_1d<q_policy,base_fe_degree>::n_q_points_1d,
+		SelectEvaluator<dim, base_fe_degree, n_q_points_1d,
 						n_components, Number>
 				::integrate (shape_info, values_dofs_actual, values_quad,
 			              gradients_quad, scratch_data,
@@ -711,7 +711,7 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 	}
 	else//new style when FEType is RaviartThomas or something
 	{
-		SelectEvaluatorAnisotropic<FEType, q_policy, dim, base_fe_degree, Number>
+		SelectEvaluatorAnisotropic<FEType, n_q_points_1d, dim, base_fe_degree, Number>
 		  ::integrate (shape_info, values_dofs_actual, values_quad,
 		              gradients_quad, scratch_data,
 		              integrate_values, integrate_gradients);
@@ -721,10 +721,10 @@ SelectEvaluatorGen<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 
 //TODO: Put a check on the right type to be given as template argument to FEEvaluationImplGen
 //Currently, only tensor_general is provided as default for testing and debugging
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 inline
 void
-SelectEvaluatorAnisotropic<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
+SelectEvaluatorAnisotropic<FEType, n_q_points_1d,dim,base_fe_degree,Number>::evaluate
 	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	 VectorizedArray<Number> *values_dofs_actual[],
 	 VectorizedArray<Number> *values_quad[],
@@ -736,17 +736,17 @@ SelectEvaluatorAnisotropic<FEType, q_policy,dim,base_fe_degree,Number>::evaluate
 	 const bool               evaluate_hessians)
 {
 	  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
-             FEType, q_policy, dim, base_fe_degree, Number>
+             FEType, n_q_points_1d, dim, base_fe_degree, Number>
              ::evaluate(shape_info, values_dofs_actual, values_quad,
                         gradients_quad, hessians_quad, scratch_data,
                         evaluate_values, evaluate_gradients, evaluate_hessians);
 }
 
 
-template <typename FEType, QuadPolicy q_policy, int dim, int base_fe_degree, typename Number>
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
 inline
 void
-SelectEvaluatorAnisotropic<FEType,q_policy,dim,base_fe_degree,Number>::integrate
+SelectEvaluatorAnisotropic<FEType,n_q_points_1d,dim,base_fe_degree,Number>::integrate
 		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
 	                        VectorizedArray<Number> *values_dofs_actual[],
 	                        VectorizedArray<Number> *values_quad[],
@@ -756,7 +756,7 @@ SelectEvaluatorAnisotropic<FEType,q_policy,dim,base_fe_degree,Number>::integrate
 	                        const bool               integrate_gradients)
 {
 	  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
-           FEType, q_policy, dim, base_fe_degree, Number>
+           FEType, n_q_points_1d, dim, base_fe_degree, Number>
            ::integrate(shape_info, values_dofs_actual, values_quad,
                       gradients_quad, scratch_data,
                       integrate_values, integrate_gradients);

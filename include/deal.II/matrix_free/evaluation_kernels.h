@@ -866,13 +866,12 @@ namespace internal
   // 1. It is also possible to define the stuff as abstract algo, but thats maybe for later
 
   // @base_fe_degree : e.g. RT0 = 0, RT1 = 1
-  template <MatrixFreeFunctions::ElementType type, typename FEType, QuadPolicy q_policy,
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
   		  int dim, int base_fe_degree, typename Number>
   struct FEEvaluationImplGen
   {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
     static const int max_fe_degree = get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::max_fe_degree;
-    static const int max_n_q_points_1d = get_quad_1d<q_policy,max_fe_degree>::n_q_points_1d;
 
     static
     void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
@@ -896,11 +895,11 @@ namespace internal
   };
 
 
-  template <MatrixFreeFunctions::ElementType type, typename FEType, QuadPolicy q_policy,
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
   		  int dim, int base_fe_degree, typename Number>
   inline
   void
-  FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
+  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number>
   ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
               VectorizedArray<Number> *values_dofs_actual[],
               VectorizedArray<Number> *values_quad[],
@@ -915,14 +914,14 @@ namespace internal
       return;
 
     const EvaluatorVariant variant =
-      EvaluatorSelector<type,(max_fe_degree+max_n_q_points_1d>4)>::variant;
+      EvaluatorSelector<type,(max_fe_degree+n_q_points_1d>4)>::variant;
 
     VectorizedArray<Number> **values_dofs = values_dofs_actual;
 	VectorizedArray<Number> *expanded_dof_values[n_components];
     VectorizedArray<Number> *temp1;
     VectorizedArray<Number> *temp2;
 
-    typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, max_n_q_points_1d,
+    typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
     for (unsigned int c=0; c<n_components; c++)
@@ -1123,11 +1122,11 @@ namespace internal
   }
 
 
-  template <MatrixFreeFunctions::ElementType type, typename FEType, QuadPolicy q_policy,
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
   		  int dim, int base_fe_degree, typename Number>
   inline
   void
-  FEEvaluationImplGen<type,FEType, q_policy, dim, base_fe_degree,Number>
+  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number>
   ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
                VectorizedArray<Number> *values_dofs_actual[],
                VectorizedArray<Number> *values_quad[],
@@ -1137,7 +1136,7 @@ namespace internal
                const bool               integrate_gradients)
   {
     const EvaluatorVariant variant =
-      EvaluatorSelector<type,(max_fe_degree+max_n_q_points_1d>4)>::variant;
+      EvaluatorSelector<type,(max_fe_degree+n_q_points_1d>4)>::variant;
 
     // expand dof_values to tensor product for truncated tensor products
     VectorizedArray<Number> **values_dofs = values_dofs_actual;
@@ -1145,7 +1144,7 @@ namespace internal
     VectorizedArray<Number> *temp1;
     VectorizedArray<Number> *temp2;
 
-    typedef EvaluatorTensorProduct<variant, dim, max_fe_degree, max_n_q_points_1d,
+    typedef EvaluatorTensorProduct<variant, dim, max_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
     for (unsigned int c=0; c<n_components; c++)

@@ -26,17 +26,6 @@ DEAL_II_NAMESPACE_OPEN
 	}; //empty class, only for getting the typename
 
 
-
-	enum class QuadPolicy
-	{
-		equals_fe_degree,
-
-		fe_degree_plus_one,
-
-		no_policy // Not designed yet !!
-	};
-
-
 	///////some traits
 	template <typename T, int dim>
 	struct get_n_comp
@@ -59,19 +48,6 @@ DEAL_II_NAMESPACE_OPEN
 		static constexpr int n_components = dim;
 	};
 
-
-	//Get quad points in 1D from quad policy and FE degree in that direction
-	template <QuadPolicy T, int fe_degree>
-	struct get_quad_1d
-	{
-		static constexpr int n_q_points_1d = fe_degree;
-	};
-
-	template <int fe_degree>
-	struct get_quad_1d<QuadPolicy::fe_degree_plus_one, fe_degree>
-	{
-		static constexpr int n_q_points_1d = fe_degree+1;
-	};
 
 	//Get FE Data info in a static manner. The FE object can provide this (and much more) info
 	//at runtime
