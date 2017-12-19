@@ -252,6 +252,8 @@ namespace internal
 
       /**
        * Stores the degree of the element.
+       * @note For vector element, this stores the maximal
+       * polynomial degree of the shape function across all components
        */
       unsigned int fe_degree;
 
@@ -263,12 +265,15 @@ namespace internal
       /**
        * Stores the number of quadrature points in @p dim dimensions for a
        * cell.
+       * @note: For vector element, this implies number of quad points
+       * per component
        */
       unsigned int n_q_points;
 
       /**
        * Stores the number of DoFs per cell of the scalar element in @p dim
        * dimensions.
+       * @note: For vector element, this is equal to dofs_per_cell/n_components
        */
       unsigned int dofs_per_component_on_cell;
 

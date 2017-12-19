@@ -1167,8 +1167,8 @@ namespace internal
     if (temp_size == 0)
       {
         temp1 = scratch_data;
-        temp2 = temp1 + std::max(Utilities::fixed_power<dim>(shape_info[c].fe_degree+1),
-                                 Utilities::fixed_power<dim>(shape_info[c].n_q_points_1d));
+        temp2 = temp1 + std::max(Utilities::fixed_power<dim>(shape_info.fe_degree+1),
+                                 Utilities::fixed_power<dim>(shape_info.n_q_points_1d));
       }
     else
       {
@@ -1176,6 +1176,7 @@ namespace internal
         temp2 = temp1 + temp_size;
       }
 
+#if 0 //FIXME
     // expand dof_values to tensor product for truncated tensor products
     if (type == MatrixFreeFunctions::truncated_tensor)
       {
@@ -1185,6 +1186,7 @@ namespace internal
                                                             shape_info[c].n_q_points)) +
                                    c*Utilities::fixed_power<dim>(shape_info[c].fe_degree+1);
       }
+#endif
 
     // These avoid compiler warnings; they are only used in sensible context but
     // compilers typically cannot detect when we access something like

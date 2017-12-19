@@ -2085,11 +2085,9 @@ private:
    static constexpr unsigned int static_dofs_per_cell =
 		   get_FEData<FEType, dim, 0 /* any dir */,
 		   	   	   base_fe_degree, n_components-1 /* any component */>::dofs_per_cell;
-   //static constexpr unsigned int n_components  = n_components_;
-   //static constexpr unsigned int static_n_q_points    = Utilities::fixed_int_power<n_q_points_1d,dim>::value;
-   //static constexpr unsigned int static_dofs_per_component = Utilities::fixed_int_power<fe_degree+1,dim>::value;
-   //static constexpr unsigned int tensor_dofs_per_cell = static_dofs_per_component *n_components;
-   //static constexpr unsigned int static_dofs_per_cell = static_dofs_per_component *n_components;
+   static constexpr unsigned int static_dofs_per_component = static_dofs_per_cell/n_components;
+   static constexpr unsigned int tensor_dofs_per_cell = static_dofs_per_cell/n_components;
+   static constexpr unsigned int static_n_q_points    = Utilities::fixed_int_power<n_q_points_1d,dim>::value;
 
    /**
     * Constructor. Takes all data stored in MatrixFree. If applied to problems
@@ -2177,63 +2175,38 @@ private:
 #endif
 
    /**
-    * Evaluates the function values, the gradients, and the Hessians of the
-    * FE function given at the DoF values in the input vector at the quadrature
-    * points on the unit cell.  The function arguments specify which parts
-    * shall actually be computed. Needs to be called before the functions @p
-    * get_value(), @p get_gradient() or @p get_laplacian give useful
-    * information (unless these values have been set manually).
+    * See @FEEvaluation.evaluate
     */
    void evaluate (const bool evaluate_values,
                   const bool evaluate_gradients,
                   const bool evaluate_hessians = false);
 
    /**
-    * This function takes the values and/or gradients that are stored on
-    * quadrature points, tests them by all the basis functions/gradients on the
-    * cell and performs the cell integration. The two function arguments
-    * @p integrate_values and @p integrate_gradients define which of the values
-    * or gradients (or both) are summed together.
+    * See @FEEvaluation.integrate
     */
    void integrate (const bool integrate_values,
                    const bool integrate_gradients);
 
    /**
-    * Return the q-th quadrature point stored in MappingInfo.
+    * See @FEEvaluation.quadrature_point
     */
    Point<dim,VectorizedArray<Number> >
    quadrature_point (const unsigned int q_point) const;
 
    /**
-    * The number of degrees of freedom of a single component on the cell for
-    * the underlying evaluation object. Usually close to
-    * static_dofs_per_component, but the number depends on the actual element
-    * selected and is thus not static.
+    * See @FEEvaluation.dofs_per_component
     */
    const unsigned int dofs_per_component;
 
    /**
-    * The number of degrees of freedom on the cell accumulated over all
-    * components in the current evaluation object. Usually close to
-    * static_dofs_per_cell = static_dofs_per_component*n_components, but the
-    * number depends on the actual element selected and is thus not static.
+    * See @FEEvaluation.dofs_per_cell
     */
    const unsigned int dofs_per_cell;
 
    /**
-    * The number of quadrature points in use for the current evaluation
-    * object. It is evaluated at run-time rather than at compile time
-    * as for @FEEvaluation
+    * See @FEEvaluation.n_q_points
     */
    const unsigned int n_q_points;
-
- private:
-   /**
-    * Checks if the template arguments regarding degree of the element
-    * corresponds to the actual element used at initialization.
-    */
-   void check_template_arguments(const unsigned int fe_no,
-                                 const unsigned int first_selected_component);
  };
 
 namespace internal
@@ -5632,8 +5605,9 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
                 const unsigned int quad_no)
   :
    BaseClass (data_in, fe_no, quad_no,
-   		  	  numbers::invalid_unsigned_int,
-   		  	numbers::invalid_unsigned_int, true), //use non-primitive
+   		  	  numbers::invalid_unsigned_int, //required only for hp FE
+   		  	numbers::invalid_unsigned_int, //required only for hp FE
+   		  	true), //use non-primitive
   dofs_per_component (this->data->dofs_per_component_on_cell),
   dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
   n_q_points (this->data->n_q_points)

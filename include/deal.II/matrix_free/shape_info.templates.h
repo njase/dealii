@@ -699,9 +699,9 @@ namespace internal
         }
 
         //Saur: should not be needed for simple case like mine
-        //n_q_points      = Utilities::fixed_power<dim>(n_q_points_1d);
+        n_q_points      = Utilities::fixed_power<dim>(n_q_points_1d);
         //n_q_points_face = dim>1?Utilities::fixed_power<dim-1>(n_q_points_1d):1;
-        //dofs_per_component_on_cell = fe->dofs_per_cell;
+        dofs_per_component_on_cell = fe->dofs_per_cell/vector_n_components;
         //dofs_per_component_on_face = dim>1?Utilities::fixed_power<dim-1>(fe_degree+1):1;
 
         const unsigned int array_size = n_dofs_1d*n_q_points_1d;
