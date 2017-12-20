@@ -3196,6 +3196,7 @@ FEEvaluationBase<dim,n_components_,Number>
   // and sit on a different vector each)
   if (n_fe_components == 1)
     {
+	  std::cout<<"Debug in n_fe_components = 1"<<std::endl;
       for (unsigned int c=0; c<n_components; ++c)
         Assert(src[c] != nullptr,
                ExcMessage("The finite element underlying this FEEvaluation "
@@ -3362,6 +3363,7 @@ FEEvaluationBase<dim,n_components_,Number>
     // the first component, then all entries to the second one, and so
     // on. This is ensured by the way MatrixFree reads out the indices.
     {
+	  std::cout<<"Debug in n_fe_components = "<<n_fe_components<<std::endl;
       internal::check_vector_compatibility (*src[0], *dof_info);
       Assert (n_fe_components == n_components_, ExcNotImplemented());
       const unsigned int n_local_dofs =

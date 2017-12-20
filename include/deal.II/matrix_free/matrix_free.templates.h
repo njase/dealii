@@ -542,7 +542,12 @@ void MatrixFree<dim,Number>::initialize_indices
           const FiniteElement<dim> &fe = *fes[fe_index];
           Assert (fe.n_base_elements() == 1,
                   ExcMessage ("MatrixFree currently only works for DoFHandler with one base element"));
-          const unsigned int n_fe_components = fe.element_multiplicity (0);
+          //const unsigned int n_fe_components = fe.element_multiplicity (0);
+          const unsigned int n_fe_components = fe.n_components();
+
+          //To my understansding, although it stores n_fe_components, the current implementation
+          //everywhere expects that n_fe_components will come as 1.
+          //Therefore, I make the kind of changes here
 
           // cache number of finite elements and dofs_per_cell
           dof_info[no].dofs_per_cell.push_back (fe.dofs_per_cell);
