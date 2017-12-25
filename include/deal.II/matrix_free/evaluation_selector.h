@@ -703,6 +703,7 @@ SelectEvaluatorGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>::integrate
 	                        const bool               integrate_values,
 	                        const bool               integrate_gradients)
 {
+#if 0
 	if (get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::isIsotropic)
 	{
 		//Old style SelectEvaluator
@@ -714,11 +715,12 @@ SelectEvaluatorGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>::integrate
 	}
 	else//new style when FEType is RaviartThomas or something
 	{
+#endif
 		SelectEvaluatorAnisotropic<FEType, n_q_points_1d, dim, base_fe_degree, Number>
 		  ::integrate (shape_info, values_dofs_actual, values_quad,
 		              gradients_quad, scratch_data,
 		              integrate_values, integrate_gradients);
-	}
+//	}
 }
 
 

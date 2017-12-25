@@ -3362,6 +3362,14 @@ FEEvaluationBase<dim,n_components_,Number>
     // included in one single vector. Assumption: first come all entries to
     // the first component, then all entries to the second one, and so
     // on. This is ensured by the way MatrixFree reads out the indices.
+	//NO
+	// This current implementation does not work out if the MatrixFree has two
+	// dof objects where one corresponds to vector valued fe. In such a case
+	// if the dofs for all components are in a single vector, the locally owned
+	// index set size will have a mismatch. This limitation does not work with
+	//my intended implementation and needs some rework here
+	//If we want to treat FE as non-primitive, we pass around this limitation
+	//although functionality is limited
     {
 	  std::cout<<"Debug in n_fe_components = "<<n_fe_components<<std::endl;
       internal::check_vector_compatibility (*src[0], *dof_info);
@@ -3507,10 +3515,21 @@ FEEvaluationBase<dim,n_components_,Number>
   // of components is checked in the internal data
   typename internal::BlockVectorSelector<VectorType,
            IsBlockVector<VectorType>::value>::BaseVectorType *src_data[n_components];
-  for (unsigned int d=0; d<n_components; ++d)
-    src_data[d] = internal::BlockVectorSelector<VectorType,
+  if (matrix_info->is_primitive())
+  {
+	  src_data[0] = internal::BlockVectorSelector<VectorType,
+	  						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
+	  						first_index);
+	  for (unsigned int d=1; d<n_components; ++d)
+		  src_data[d] = nullptr;
+  }
+  else
+  {
+	  for (unsigned int d=0; d<n_components; ++d)
+		  src_data[d] = internal::BlockVectorSelector<VectorType,
 						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
 						d+first_index);
+  }
 
   internal::VectorReader<Number> reader;
   read_write_operation (reader, src_data);

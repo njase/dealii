@@ -869,6 +869,7 @@ public:
    */
   void release_scratch_data(const AlignedVector<VectorizedArray<Number> > *memory) const;
 
+  bool is_primitive() const {return use_non_primitive;};
   //@}
 
 private:
