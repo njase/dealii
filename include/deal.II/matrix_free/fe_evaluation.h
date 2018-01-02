@@ -3196,7 +3196,6 @@ FEEvaluationBase<dim,n_components_,Number>
   // and sit on a different vector each)
   if (n_fe_components == 1)
     {
-	  std::cout<<"Debug in n_fe_components = 1"<<std::endl;
       for (unsigned int c=0; c<n_components; ++c)
         Assert(src[c] != nullptr,
                ExcMessage("The finite element underlying this FEEvaluation "
@@ -3362,7 +3361,7 @@ FEEvaluationBase<dim,n_components_,Number>
     // included in one single vector. Assumption: first come all entries to
     // the first component, then all entries to the second one, and so
     // on. This is ensured by the way MatrixFree reads out the indices.
-	//NO
+	//NO -- IGNORE: There's a WA possible and is in use
 	// This current implementation does not work out if the MatrixFree has two
 	// dof objects where one corresponds to vector valued fe. In such a case
 	// if the dofs for all components are in a single vector, the locally owned
@@ -3371,7 +3370,6 @@ FEEvaluationBase<dim,n_components_,Number>
 	//If we want to treat FE as non-primitive, we pass around this limitation
 	//although functionality is limited
     {
-	  std::cout<<"Debug in n_fe_components = "<<n_fe_components<<std::endl;
       internal::check_vector_compatibility (*src[0], *dof_info);
       Assert (n_fe_components == n_components_, ExcNotImplemented());
       const unsigned int n_local_dofs =
@@ -3515,6 +3513,8 @@ FEEvaluationBase<dim,n_components_,Number>
   // of components is checked in the internal data
   typename internal::BlockVectorSelector<VectorType,
            IsBlockVector<VectorType>::value>::BaseVectorType *src_data[n_components];
+
+#if 0
   if (matrix_info->is_primitive())
   {
 	  src_data[0] = internal::BlockVectorSelector<VectorType,
@@ -3530,6 +3530,13 @@ FEEvaluationBase<dim,n_components_,Number>
 						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
 						d+first_index);
   }
+#endif
+
+  for (unsigned int d=0; d<n_components; ++d)
+    src_data[d] = internal::BlockVectorSelector<VectorType,
+    			  IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
+    			  d+first_index);
+
 
   internal::VectorReader<Number> reader;
   read_write_operation (reader, src_data);
