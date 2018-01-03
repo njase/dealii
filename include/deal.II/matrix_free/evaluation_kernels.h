@@ -1112,7 +1112,7 @@ namespace internal
         break;
 #endif
       default:
-        AssertThrow(false, ExcNotImplemented());
+        Assert(false, ExcNotImplemented());
       }
     }//end of for loop
 

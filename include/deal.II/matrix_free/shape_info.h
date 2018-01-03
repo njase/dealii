@@ -124,7 +124,7 @@ namespace internal
       std::size_t memory_consumption () const;
 
     private:
-      //Shape values - basis shape values - as of now, max 2 are required (for RT)
+      //Shape values - basis shape values
       std::vector<ShapeVector> base_shape_values;
       std::vector<ShapeVector> base_shape_gradients;
       std::vector<ShapeVector> base_shape_hessians;
@@ -138,6 +138,11 @@ namespace internal
             void internal_reinit_vector (const Quadrature<1> &quad,
                          const FiniteElement<dim> &fe_dim,
                          const unsigned int base_element);
+
+      template <int dim>
+      	  std::vector<unsigned int>
+      	  lexicographic_renumber(const FiniteElement<dim> &fe,
+      			  	  	  		const unsigned int base_element_number);
 
     public:
       /**
