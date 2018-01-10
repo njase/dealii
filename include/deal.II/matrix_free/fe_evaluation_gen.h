@@ -68,16 +68,16 @@ DEAL_II_NAMESPACE_OPEN
 	{
 		static constexpr int max_fe_degree = base_fe_degree+1;
 		static constexpr bool isIsotropic = false;
-		static constexpr int fe_degree_for_component = ((dir == c) ? base_fe_degree+1 : base_fe_degree+1);
+		static constexpr int fe_degree_for_component = ((dir == c) ? base_fe_degree+1 : base_fe_degree);
 		static constexpr unsigned int dofs_per_cell =
 					Utilities::fixed_int_power<base_fe_degree+1,dim-1>::value*dim*(base_fe_degree+2);
 	};
 
-	//Qk+1,Qk element = FE_TaylorHood
+	//Qk,Q(k-1) element = FE_TaylorHood
 	template <int dim, int dir, int base_fe_degree, int c>
 	struct get_FEData<FE_TaylorHood, dim, dir, base_fe_degree, c>
 	{
-		static constexpr int max_fe_degree = base_fe_degree+1;
+		static constexpr int max_fe_degree = base_fe_degree;
 		static constexpr bool isIsotropic = true;
 		static constexpr int fe_degree_for_component = base_fe_degree;
 		static constexpr unsigned int dofs_per_cell =
