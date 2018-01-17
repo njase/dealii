@@ -441,6 +441,7 @@ protected:
    * The polynomial space. Its type is given by the template parameter
    * PolynomialType.
    */
+  public: //FIXME remove as added for debugging
   PolynomialType poly_space;
 };
 

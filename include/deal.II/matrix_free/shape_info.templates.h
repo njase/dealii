@@ -570,7 +570,7 @@ namespace internal
 
 
     	//limited support currently
-    	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
+    	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 }; //FIXME: See if FiniteElement::get_name() can be used
     	FEName fe_name = FEName::FE_Unknown;
 
     	typedef std::pair<unsigned int /*comp*/, unsigned int /* dim*/> mindex;
