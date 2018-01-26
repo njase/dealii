@@ -573,7 +573,7 @@ namespace internal
     	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 }; //FIXME: See if FiniteElement::get_name() can be used
     	FEName fe_name = FEName::FE_Unknown;
 
-    	typedef std::pair<unsigned int /*comp*/, unsigned int /* dim*/> mindex;
+    	typedef std::pair<unsigned int, unsigned int> mindex; /*comp, dim */
     	std::map<mindex, unsigned int> index_map;
 
     	unsigned int base_values_count = 0;
@@ -643,8 +643,19 @@ namespace internal
         std::vector<unsigned int> scalar_lexicographic;
         Point<dim> unit_point;
 
+        std::vector<std::vector<Polynomials::Polynomial<double>>> pols;
+        std::vector<PolynomialSpace<1>> polyspace;
+
+        std::vector<double> p_values;
+        std::vector<Tensor<1,1> > p_grads;
+        std::vector<Tensor<2,1> > p_grad_grads;
+        std::vector<Tensor<3,1> > p_third_derivatives(0);
+        std::vector<Tensor<4,1> > p_fourth_derivatives(0);
+
         if (FEName::FE_Q_TP == fe_name)
         {
+        	Assert (false, ExcNotImplemented());
+
             Assert(fe->n_components() == 1,ExcMessage("Expected a scalar element"));
             // find numbering to lexicographic
             scalar_lexicographic = lexicographic_renumber(fe_in, base_element_number);
@@ -661,6 +672,18 @@ namespace internal
                    ExcInternalError("Could not decode 1D shape functions for the "
                                     "element " + fe->get_name()));
         }
+        else if (FEName::FE_RT == fe_name)
+        {
+
+        	  pols = PolynomialsRaviartThomas<dim>::create_polynomials (fe_degree-1);
+        	  polyspace.resize(base_values_count);
+        	  for (int j=0; j<base_values_count; j++)
+        	  {
+        		  polyspace[j] = PolynomialSpace<1>(pols[j]);
+        		  Assert(polyspace[j].n() == n_dofs_1d[j],ExcMessage("Polynomial space size mismatch with expected dofs"));
+        	  }
+        }
+
 
         n_q_points      = Utilities::fixed_power<dim>(n_q_points_1d);
 
@@ -682,20 +705,29 @@ namespace internal
         	FE_Q<1> temp_fe(n_dofs_1d[j]-1); //fe_degree = dofs_1d-1
         	std::vector<unsigned int >scalar_lexicographic_temp = temp_fe.get_poly_space_numbering_inverse();
 
-        	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
-        	{
+        	//for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
+        	//{
         		// need to reorder from hierarchical to lexicographic to get the
         		// DoFs correct
-        		const unsigned int my_i = scalar_lexicographic_temp[i];
+        		//const unsigned int my_i = scalar_lexicographic_temp[i];
         		for (unsigned int q=0; q<n_q_points_1d; ++q)
         		{
         			Point<1> q_point = quad.get_points()[q];
+        			const unsigned int psize = polyspace[j].n();
+        			p_values.resize(psize);
+        			p_grads.resize(psize);
+        			p_grad_grads.resize(psize);
 
-        			base_shape_values[j][i*n_q_points_1d+q] = temp_fe.shape_value(my_i,q_point);
-        			base_shape_gradients[j][i*n_q_points_1d+q] = temp_fe.shape_grad(my_i,q_point)[0];
-        			base_shape_hessians[j][i*n_q_points_1d+q] = temp_fe.shape_grad_grad(my_i,q_point)[0][0];
+        			polyspace[j].compute(q_point,p_values,p_grads,p_grad_grads,p_third_derivatives,p_fourth_derivatives);
+
+                	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
+                	{
+                		base_shape_values[j][i*n_q_points_1d+q] = p_values[i];//temp_fe.shape_value(my_i,q_point);
+                		base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];//temp_fe.shape_grad(my_i,q_point)[0];
+                		base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];//temp_fe.shape_grad_grad(my_i,q_point)[0][0];
+                	}
         		}
-        	}
+        	//}
         }
 
         shape_values_vec.resize(vector_n_components);
