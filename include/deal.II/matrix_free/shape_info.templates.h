@@ -676,10 +676,10 @@ namespace internal
         {
 
         	  pols = PolynomialsRaviartThomas<dim>::create_polynomials (fe_degree-1);
-        	  polyspace.resize(base_values_count);
+        	  polyspace.reserve(base_values_count);
         	  for (int j=0; j<base_values_count; j++)
         	  {
-        		  polyspace[j] = PolynomialSpace<1>(pols[j]);
+        		  polyspace.emplace_back(PolynomialSpace<1>(pols[j]));
         		  Assert(polyspace[j].n() == n_dofs_1d[j],ExcMessage("Polynomial space size mismatch with expected dofs"));
         	  }
         }
@@ -722,9 +722,9 @@ namespace internal
 
                 	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
                 	{
-                		base_shape_values[j][i*n_q_points_1d+q] = p_values[i];//temp_fe.shape_value(my_i,q_point);
-                		base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];//temp_fe.shape_grad(my_i,q_point)[0];
-                		base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];//temp_fe.shape_grad_grad(my_i,q_point)[0][0];
+                		base_shape_values[j][i*n_q_points_1d+q] = p_values[i];
+                		base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];
+                		base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
                 	}
         		}
         	//}

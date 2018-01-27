@@ -122,6 +122,7 @@ private:
    * A static member function that creates the polynomial space we use to
    * initialize the #polynomial_space member variable.
    */
+public: //FIXME: Remove after debug
   static
   std::vector<std::vector< Polynomials::Polynomial< double > > >
   create_polynomials (const unsigned int k);
