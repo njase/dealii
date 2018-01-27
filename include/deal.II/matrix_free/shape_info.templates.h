@@ -593,14 +593,15 @@ namespace internal
 
     	//store only one base_shape_value with all directions pointing to it
     	//This is true for FE_Q vector valued and will be updated for RT
-    	for (int c=0; c<vector_n_components; c++)
-    		for (int d=0; d<dim; d++)
-    			index_map[mindex(c,d)] = 0;
+
 
     	if (dynamic_cast<const FE_RaviartThomas<dim> *>(fe))
     	{
         	if (dim != vector_n_components)
         		Assert (false, ExcNotImplemented());
+
+    		if (1 == vector_n_components)
+    			Assert (false, ExcNotImplemented());
 
     		fe_name = FEName::FE_RT;
 
@@ -608,24 +609,21 @@ namespace internal
     		n_dofs_1d[0] = fe->degree+1; //For Qk+1
     		n_dofs_1d[1] = fe->degree; //For Qk
 
-    		if (1 == vector_n_components)
-    		{
-    			Assert (false, ExcNotImplemented());
-    		}
-    		else if (2 == vector_n_components)
-    		{
-    			index_map[mindex(1,1)] = 1;
-    			index_map[mindex(2,1)] = 0;
-    		}
-    		else
-    		{
-    			index_map[mindex(1,1)] = 1;
-    			index_map[mindex(2,2)] = 1;
-    			index_map[mindex(3,3)] = 1;
-    		}
+        	for (int c=0; c<vector_n_components; c++)
+        		for (int d=0; d<dim; d++)
+        		{
+        			if (c==d)
+        				index_map[mindex(c,d)] = 0;
+        			else
+        				index_map[mindex(c,d)] = 1;
+        		}
     	}
     	else if(dynamic_cast<const FE_Q<dim> *>(fe))
     	{
+        	for (int c=0; c<vector_n_components; c++)
+        		for (int d=0; d<dim; d++)
+        			index_map[mindex(c,d)] = 0;
+
     		base_values_count = 1;
     		n_dofs_1d[0] = fe->degree+1;
 
@@ -674,6 +672,10 @@ namespace internal
         }
         else if (FEName::FE_RT == fe_name)
         {
+        	//We dont need any special conversion
+        	  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
+        	  for (int i=0; i<fe_in.dofs_per_cell; i++)
+        		  lexicographic_numbering[i] = i;
 
         	  pols = PolynomialsRaviartThomas<dim>::create_polynomials (fe_degree-1);
         	  polyspace.reserve(base_values_count);
@@ -702,8 +704,8 @@ namespace internal
         	this->base_shape_values[j].resize_fast (array_size);
         	this->base_shape_hessians[j].resize_fast (array_size);
 
-        	FE_Q<1> temp_fe(n_dofs_1d[j]-1); //fe_degree = dofs_1d-1
-        	std::vector<unsigned int >scalar_lexicographic_temp = temp_fe.get_poly_space_numbering_inverse();
+        	//FE_Q<1> temp_fe(n_dofs_1d[j]-1); //fe_degree = dofs_1d-1
+        	//std::vector<unsigned int >scalar_lexicographic_temp = temp_fe.get_poly_space_numbering_inverse();
 
         	//for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
         	//{
