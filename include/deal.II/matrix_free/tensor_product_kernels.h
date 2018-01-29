@@ -1294,6 +1294,77 @@ namespace internal
       }
   }
 
+  //Modifications to exisging kernel to support anisotropic tensor products
+  template <int dim, int fe_degree, int n_q_points_1d, typename Number,
+  	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other>
+  inline
+  void
+  apply_anisotropic (const Number *shape_data,
+           const Number in [],
+           Number       out [])
+  {
+    AssertIndexRange (direction, dim);
+    const int mm     = dof_to_quad ? (fe_degree+1) : n_q_points_1d,
+              nn     = dof_to_quad ? n_q_points_1d : (fe_degree+1),
+              mm_other = dof_to_quad ? (fe_degree_other+1) : n_q_points_1d;
+
+    const int n_blocks1 = (dim > 1 ? (direction > 0 ? nn : mm_other) : 1);
+    const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm_other) : 1); //FIXME TBD for dim=3
+    const int stride    = Utilities::fixed_int_power<nn,direction>::value;
+
+    for (int i2=0; i2<n_blocks2; ++i2)
+      {
+        for (int i1=0; i1<n_blocks1; ++i1)
+          {
+            for (int col=0; col<nn; ++col)
+              {
+                Number val0;
+                if (dof_to_quad == true)
+                  val0 = shape_data[col];
+                else
+                  val0 = shape_data[col*n_q_points_1d];
+                Number res0 = val0 * in[0];
+                for (int ind=1; ind<mm; ++ind)
+                  {
+                    if (dof_to_quad == true)
+                      val0 = shape_data[ind*n_q_points_1d+col];
+                    else
+                      val0 = shape_data[col*n_q_points_1d+ind];
+                    res0 += val0 * in[stride*ind];
+                  }
+                if (add == false)
+                  out[stride*col]  = res0;
+                else
+                  out[stride*col] += res0;
+              }
+
+            // increment: in regular case, just go to the next point in
+            // x-direction. If we are at the end of one chunk in x-dir, need
+            // to jump over to the next layer in z-direction
+            switch (direction)
+              {
+              case 0:
+                in += mm;
+                out += nn;
+                break;
+              case 1:
+              case 2:
+                ++in;
+                ++out;
+                break;
+              default:
+                Assert (false, ExcNotImplemented());
+              }
+          }
+        if (direction == 1)
+          {
+            in += nn*(mm-1);
+            out += nn*(nn-1);
+          }
+      }
+  }
+
+
 } // end of namespace internal
 
 
