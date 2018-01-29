@@ -1296,7 +1296,7 @@ namespace internal
 
   //Modifications to exisging kernel to support anisotropic tensor products
   template <int dim, int fe_degree, int n_q_points_1d, typename Number,
-  	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other>
+  	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other1>
   inline
   void
   apply_anisotropic (const Number *shape_data,
@@ -1306,10 +1306,11 @@ namespace internal
     AssertIndexRange (direction, dim);
     const int mm     = dof_to_quad ? (fe_degree+1) : n_q_points_1d,
               nn     = dof_to_quad ? n_q_points_1d : (fe_degree+1),
-              mm_other = dof_to_quad ? (fe_degree_other+1) : n_q_points_1d;
+              mm_other1 = dof_to_quad ? (fe_degree_other1+1) : n_q_points_1d;
+              //mm_other2 = dof_to_quad ? (fe_degree_other2+1) : n_q_points_1d;
 
-    const int n_blocks1 = (dim > 1 ? (direction > 0 ? nn : mm_other) : 1);
-    const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm_other) : 1); //FIXME TBD for dim=3
+    const int n_blocks1 = (dim > 1 ? (direction > 0 ? nn : mm_other1) : 1);
+    const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm) : 1); //FIXME TBD for dim=3
     const int stride    = Utilities::fixed_int_power<nn,direction>::value;
 
     for (int i2=0; i2<n_blocks2; ++i2)

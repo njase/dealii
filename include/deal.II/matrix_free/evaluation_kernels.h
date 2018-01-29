@@ -867,7 +867,7 @@ namespace internal
 
   // @base_fe_degree : e.g. RT0 = 0, RT1 = 1
   template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number>
+  		  int dim, int base_fe_degree, typename Number, int c=0>
   struct FEEvaluationImplGen
   {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
@@ -896,10 +896,10 @@ namespace internal
 
 
   template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number>
+  		  int dim, int base_fe_degree, typename Number, int c>
   inline
   void
-  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number>
+  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number,c>
   ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
               VectorizedArray<Number> *values_dofs_actual[],
               VectorizedArray<Number> *values_quad[],
@@ -932,8 +932,10 @@ namespace internal
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
-    for (unsigned int c=0; c<n_components; c++)
-    {
+    typedef VectorizedArray<Number> VecArr;
+
+    //for (unsigned int c=0; c<n_components; c++)
+    //{
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?
                                       Eval::dofs_per_cell : Eval::n_q_points);
@@ -962,20 +964,24 @@ namespace internal
     switch (dim)
       {
       case 1:
-        //for (unsigned int c=0; c<n_components; c++)
-         // {
+       // for (unsigned int c=0; c<n_components; c++)
+          {
             if (evaluate_values == true)
               eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], values_quad[c]);
             if (evaluate_gradients == true)
               eval.template apply<0,true,false>(shape_info.shape_gradients_vec[c][0],values_dofs[c], gradients_quad[c][0]);
             if (evaluate_hessians == true)
               eval.template apply<0,true,false> (shape_info.shape_hessians_vec[c][0],values_dofs[c], hessians_quad[c][0]);
-          //}
+          }
         break;
 
       case 2:
         //for (unsigned int c=0; c<n_components; c++)
-          //{
+          {
+        	constexpr int fe_deg_x = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
+        	constexpr int fe_deg_y = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
+
+
             // grad x
             if (evaluate_gradients == true)
               {
@@ -995,7 +1001,8 @@ namespace internal
               }
 
             // grad y
-            eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
+            //eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
+            apply_anisotropic<dim, fe_deg_x, n_q_points_1d, VecArr,0,true,false,fe_deg_y>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
             if (evaluate_gradients == true)
               eval.template apply<1,true,false> (shape_info.shape_gradients_vec[c][1],temp1, gradients_quad[c][d1]);
 
@@ -1005,13 +1012,14 @@ namespace internal
 
             // val: can use values applied in x
             if (evaluate_values == true)
-              eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, values_quad[c]);
-          //}
+            	apply_anisotropic<dim, fe_deg_y, n_q_points_1d, VecArr,1,true,false,fe_deg_x>(shape_info.shape_values_vec[c][1],temp1,values_quad[c]);
+              //eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, values_quad[c]);
+          }
         break;
 
       case 3:
         //for (unsigned int c=0; c<n_components; c++)
-         // {
+          {
             if (evaluate_gradients == true)
               {
                 // grad x
@@ -1073,28 +1081,29 @@ namespace internal
             // val: can use the values applied in x & y direction stored in temp2
             if (evaluate_values == true)
               eval.template apply<2,true,false> (shape_info.shape_values_vec[c][2],temp2, values_quad[c]);
-        //  }
+          }
         break;
-
       default:
         Assert(false, ExcNotImplemented());
       }
-    }//end of for loop
+    //}//end of for loop
 
+#if 0
     // case additional dof for FE_Q_DG0: add values; gradients and second
     // derivatives evaluate to zero
     if (type == MatrixFreeFunctions::tensor_symmetric_plus_dg0 && evaluate_values)
       for (unsigned int c=0; c<n_components; ++c)
         for (unsigned int q=0; q<shape_info.n_q_points; ++q)
           values_quad[c][q] += values_dofs[c][shape_info.dofs_per_component_on_cell-1];
+#endif
   }
 
 
   template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number>
+  		  int dim, int base_fe_degree, typename Number, int c>
   inline
   void
-  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number>
+  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number,c>
   ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
                VectorizedArray<Number> *values_dofs_actual[],
                VectorizedArray<Number> *values_quad[],
@@ -1123,7 +1132,7 @@ namespace internal
                   shape_info.fe_degree,
                   shape_info.n_q_points_1d);
 
-    for (unsigned int c=0; c<n_components; c++)
+    for (unsigned int c_old=0; c_old<n_components; c_old++)
     {
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?

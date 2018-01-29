@@ -69,6 +69,7 @@ DEAL_II_NAMESPACE_OPEN
 		static constexpr int max_fe_degree = base_fe_degree+1;
 		static constexpr bool isIsotropic = false;
 		static constexpr int fe_degree_for_component = ((dir == c) ? base_fe_degree+1 : base_fe_degree);
+		static constexpr int fe_degree = ((dir == c) ? base_fe_degree+1 : base_fe_degree);
 		static constexpr unsigned int dofs_per_cell =
 					Utilities::fixed_int_power<base_fe_degree+1,dim-1>::value*dim*(base_fe_degree+2);
 	};

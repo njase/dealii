@@ -740,11 +740,41 @@ SelectEvaluatorAnisotropic<FEType, n_q_points_1d,dim,base_fe_degree,Number>::eva
 	 const bool               evaluate_gradients,
 	 const bool               evaluate_hessians)
 {
-	  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
-             FEType, n_q_points_1d, dim, base_fe_degree, Number>
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
+
+	if (n_components == 2)
+	{
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+             FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
              ::evaluate(shape_info, values_dofs_actual, values_quad,
                         gradients_quad, hessians_quad, scratch_data,
                         evaluate_values, evaluate_gradients, evaluate_hessians);
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+		             FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+	}
+	if (n_components == 3)
+	{
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+             FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
+             ::evaluate(shape_info, values_dofs_actual, values_quad,
+                        gradients_quad, hessians_quad, scratch_data,
+                        evaluate_values, evaluate_gradients, evaluate_hessians);
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+		             FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+		             FEType, n_q_points_1d, dim, base_fe_degree, Number,2>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
+	}
+
 }
 
 
