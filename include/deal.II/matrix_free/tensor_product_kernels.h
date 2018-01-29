@@ -1294,7 +1294,7 @@ namespace internal
       }
   }
 
-  //Modifications to exisging kernel to support anisotropic tensor products
+  //Modifications to existing kernel to support anisotropic tensor products
   template <int dim, int fe_degree, int n_q_points_1d, typename Number,
   	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other1>
   inline

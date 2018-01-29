@@ -1000,6 +1000,7 @@ namespace internal
                 eval.template apply<1,true,false>(shape_info.shape_values_vec[c][1],temp1, hessians_quad[c][0]);
               }
 
+
             // grad y
             //eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
             apply_anisotropic<dim, fe_deg_x, n_q_points_1d, VecArr,0,true,false,fe_deg_y>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
