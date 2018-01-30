@@ -966,55 +966,53 @@ namespace internal
       case 1:
        // for (unsigned int c=0; c<n_components; c++)
           {
+        	constexpr int fe_deg_x1 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
             if (evaluate_values == true)
-              eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], values_quad[c]);
+              apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,true,false,fe_deg_x1>(shape_info.shape_values_vec[c][0],values_dofs[c], values_quad[c]);
             if (evaluate_gradients == true)
-              eval.template apply<0,true,false>(shape_info.shape_gradients_vec[c][0],values_dofs[c], gradients_quad[c][0]);
+               apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,true,false,fe_deg_x1>(shape_info.shape_gradients_vec[c][0],values_dofs[c], gradients_quad[c][0]);
             if (evaluate_hessians == true)
-              eval.template apply<0,true,false> (shape_info.shape_hessians_vec[c][0],values_dofs[c], hessians_quad[c][0]);
+               apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,true,false,fe_deg_x1>(shape_info.shape_hessians_vec[c][0],values_dofs[c], hessians_quad[c][0]);
           }
         break;
 
       case 2:
         //for (unsigned int c=0; c<n_components; c++)
           {
-        	constexpr int fe_deg_x = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
-        	constexpr int fe_deg_y = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
-
+        	constexpr int fe_deg_x2 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
+        	constexpr int fe_deg_y2 = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
 
             // grad x
             if (evaluate_gradients == true)
               {
-                eval.template apply<0,true,false> (shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
-                eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, gradients_quad[c][0]);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,gradients_quad[c][0]);
               }
             if (evaluate_hessians == true)
               {
                 // grad xy
                 if (evaluate_gradients == false)
-                  eval.template apply<0,true,false>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
-                eval.template apply<1,true,false>  (shape_info.shape_gradients_vec[c][1],temp1, hessians_quad[c][d1+d1]);
+                	apply_anisotropic<dim,fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,hessians_quad[c][d1+d1]);
 
                 // grad xx
-                eval.template apply<0,true,false>(shape_info.shape_hessians_vec[c][0],values_dofs[c], temp1);
-                eval.template apply<1,true,false>(shape_info.shape_values_vec[c][1],temp1, hessians_quad[c][0]);
+                apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_hessians_vec[c][0],values_dofs[c], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, hessians_quad[c][0]);
               }
 
 
             // grad y
-            //eval.template apply<0,true,false> (shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
-            apply_anisotropic<dim, fe_deg_x, n_q_points_1d, VecArr,0,true,false,fe_deg_y>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
+            apply_anisotropic<dim, fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
             if (evaluate_gradients == true)
-              eval.template apply<1,true,false> (shape_info.shape_gradients_vec[c][1],temp1, gradients_quad[c][d1]);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,gradients_quad[c][d1]);
 
             // grad yy
             if (evaluate_hessians == true)
-              eval.template apply<1,true,false> (shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
+               apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
 
             // val: can use values applied in x
             if (evaluate_values == true)
-            	apply_anisotropic<dim, fe_deg_y, n_q_points_1d, VecArr,1,true,false,fe_deg_x>(shape_info.shape_values_vec[c][1],temp1,values_quad[c]);
-              //eval.template apply<1,true,false> (shape_info.shape_values_vec[c][1],temp1, values_quad[c]);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,values_quad[c]);
           }
         break;
 
