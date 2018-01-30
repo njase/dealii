@@ -118,6 +118,11 @@ private:
    */
   const unsigned int n_pols;
 
+  /*
+   * Mapping from internal ordering of tensor product to actual ordering of tensor product polynomials
+   */
+  std::vector<std::vector<int>> tensor_pols_mapping_inv;
+
   /**
    * A static member function that creates the polynomial space we use to
    * initialize the #polynomial_space member variable.
@@ -126,6 +131,8 @@ public: //FIXME: Remove after debug
   static
   std::vector<std::vector< Polynomials::Polynomial< double > > >
   create_polynomials (const unsigned int k);
+
+  void create_poly_mapping ();
 };
 
 
