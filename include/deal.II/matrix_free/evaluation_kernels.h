@@ -872,6 +872,7 @@ namespace internal
   {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
     static const int max_fe_degree = get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::max_fe_degree;
+    using VecArr = VectorizedArray<Number>;
 
     static
     void evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
@@ -931,8 +932,6 @@ namespace internal
                empty.begin(),
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
-
-    typedef VectorizedArray<Number> VecArr;
 
     //for (unsigned int c=0; c<n_components; c++)
     //{
@@ -1159,46 +1158,51 @@ namespace internal
       {
       case 1:
         //for (unsigned int c=0; c<n_components; c++)
-         // {
+          {
+        	constexpr int fe_deg_x1 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
+
             if (integrate_values == true)
-              eval.template apply<0,false,false> (shape_info.shape_values_vec[c][0],values_quad[c], values_dofs[c]);
+              apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,false,false,fe_deg_x1>(shape_info.shape_values_vec[c][0],values_quad[c], values_dofs[c]);
             if (integrate_gradients == true)
               {
                 if (integrate_values == true)
-                  eval.template apply<0,false,true> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
+                   apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,false,true,fe_deg_x1>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
                 else
-                  eval.template apply<0,false,false> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
+                   apply_anisotropic<dim, fe_deg_x1, n_q_points_1d, VecArr,0,false,false,fe_deg_x1>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], values_dofs[c]);
               }
-         // }
+          }
         break;
 
       case 2:
         //for (unsigned int c=0; c<n_components; c++)
-         // {
+          {
+          	constexpr int fe_deg_x2 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
+          	constexpr int fe_deg_y2 = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
+
             if (integrate_values == true)
               {
                 // val
-                eval.template apply<0,false,false> (shape_info.shape_values_vec[c][0],values_quad[c], temp1);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],values_quad[c], temp1);
                 //grad x
                 if (integrate_gradients == true)
-                  eval.template apply<0,false,true> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
-                eval.template apply<1,false,false>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
+                  apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,true,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,values_dofs[c]);
               }
             if (integrate_gradients == true)
               {
                 // grad y
-                eval.template apply<0,false,false>  (shape_info.shape_values_vec[c][0],gradients_quad[c][d1], temp1);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],gradients_quad[c][d1],temp1);
                 if (integrate_values == false)
                   {
-                    eval.template apply<1,false,false>(shape_info.shape_gradients_vec[c][1],temp1, values_dofs[c]);
+                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,values_dofs[c]);
                     //grad x
-                    eval.template apply<0,false,false> (shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
-                    eval.template apply<1,false,true> (shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
+                	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
                   }
                 else
-                  eval.template apply<1,false,true>(shape_info.shape_gradients_vec[c][1],temp1, values_dofs[c]);
+                  apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
               }
-        //  }
+          }
         break;
 
       case 3:

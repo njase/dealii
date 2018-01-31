@@ -570,7 +570,7 @@ namespace internal
 
 
     	//limited support currently
-    	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 }; //FIXME: See if FiniteElement::get_name() can be used
+    	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
     	FEName fe_name = FEName::FE_Unknown;
 
     	typedef std::pair<unsigned int, unsigned int> mindex; /*comp, dim */
@@ -591,17 +591,10 @@ namespace internal
 
     	const FiniteElement<dim> *fe = &fe_in.base_element(base_element_number);
 
-    	//store only one base_shape_value with all directions pointing to it
-    	//This is true for FE_Q vector valued and will be updated for RT
-
-
     	if (dynamic_cast<const FE_RaviartThomas<dim> *>(fe))
     	{
         	if (dim != vector_n_components)
         		Assert (false, ExcNotImplemented());
-
-    		if (1 == vector_n_components)
-    			Assert (false, ExcNotImplemented());
 
     		fe_name = FEName::FE_RT;
 
@@ -644,24 +637,13 @@ namespace internal
         std::vector<std::vector<Polynomials::Polynomial<double>>> pols;
         std::vector<PolynomialSpace<1>> polyspace;
 
-        std::vector<double> p_values;
-        std::vector<Tensor<1,1> > p_grads;
-        std::vector<Tensor<2,1> > p_grad_grads;
-        std::vector<Tensor<3,1> > p_third_derivatives(0);
-        std::vector<Tensor<4,1> > p_fourth_derivatives(0);
-
         if (FEName::FE_Q_TP == fe_name)
         {
-        	Assert (false, ExcNotImplemented());
-
+        	//Copied from internal_reinit_scalar
             Assert(fe->n_components() == 1,ExcMessage("Expected a scalar element"));
-            // find numbering to lexicographic
+
             scalar_lexicographic = lexicographic_renumber(fe_in, base_element_number);
 
-            // to evaluate 1D polynomials, evaluate along the line with the first
-            // unit support point, assuming that fe.shape_value(0,unit_point) ==
-            // 1. otherwise, need other entry point (e.g. generating a 1D element
-            // by reading the name, as done before r29356)
             if (fe->has_support_points())
               unit_point = fe->get_unit_support_points()[scalar_lexicographic[0]];
             Assert(fe->dofs_per_cell == 0 ||
@@ -672,7 +654,7 @@ namespace internal
         }
         else if (FEName::FE_RT == fe_name)
         {
-        	//We dont need any special conversion
+        	//We dont need any different numbering
         	  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
         	  for (int i=0; i<fe_in.dofs_per_cell; i++)
         		  lexicographic_numbering[i] = i;
@@ -704,14 +686,14 @@ namespace internal
         	this->base_shape_values[j].resize_fast (array_size);
         	this->base_shape_hessians[j].resize_fast (array_size);
 
-        	//FE_Q<1> temp_fe(n_dofs_1d[j]-1); //fe_degree = dofs_1d-1
-        	//std::vector<unsigned int >scalar_lexicographic_temp = temp_fe.get_poly_space_numbering_inverse();
+        	if (FEName::FE_RT == fe_name)
+        	{
+                std::vector<double> p_values;
+                std::vector<Tensor<1,1> > p_grads;
+                std::vector<Tensor<2,1> > p_grad_grads;
+                std::vector<Tensor<3,1> > p_third_derivatives(0);
+                std::vector<Tensor<4,1> > p_fourth_derivatives(0);
 
-        	//for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
-        	//{
-        		// need to reorder from hierarchical to lexicographic to get the
-        		// DoFs correct
-        		//const unsigned int my_i = scalar_lexicographic_temp[i];
         		for (unsigned int q=0; q<n_q_points_1d; ++q)
         		{
         			Point<1> q_point = quad.get_points()[q];
@@ -729,7 +711,28 @@ namespace internal
                 		base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
                 	}
         		}
-        	//}
+        	}
+
+        	if (FEName::FE_Q_TP == fe_name)
+        	{
+            	FE_Q<1> temp_fe(n_dofs_1d[j]-1); //fe_degree = dofs_1d-1
+            	std::vector<unsigned int >scalar_lexicographic_temp = temp_fe.get_poly_space_numbering_inverse();
+
+            	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
+            	{
+            		// need to reorder from hierarchical to lexicographic to get the
+            		// DoFs correct
+            		const unsigned int my_i = scalar_lexicographic_temp[i];
+            		for (unsigned int q=0; q<n_q_points_1d; ++q)
+            		{
+            			Point<1> q_point = quad.get_points()[q];
+
+            			base_shape_values[j][i*n_q_points_1d+q] = temp_fe.shape_value(my_i,q_point);
+            			base_shape_gradients[j][i*n_q_points_1d+q] = temp_fe.shape_grad(my_i,q_point)[0];
+            			base_shape_hessians[j][i*n_q_points_1d+q] = temp_fe.shape_grad_grad(my_i,q_point)[0][0];
+            		}
+            	}
+        	}
         }
 
         shape_values_vec.resize(vector_n_components);

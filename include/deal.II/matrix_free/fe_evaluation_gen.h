@@ -57,6 +57,7 @@ DEAL_II_NAMESPACE_OPEN
 		static constexpr int max_fe_degree = base_fe_degree;
 		static constexpr bool isIsotropic = true; //FE_Q in all directions is e.g. isotropic
 		static constexpr int fe_degree_for_component = base_fe_degree;
+		static constexpr int fe_degree = base_fe_degree;
 		static constexpr unsigned int dofs_per_cell = base_fe_degree+1;
 	};
 
@@ -81,6 +82,7 @@ DEAL_II_NAMESPACE_OPEN
 		static constexpr int max_fe_degree = base_fe_degree;
 		static constexpr bool isIsotropic = true;
 		static constexpr int fe_degree_for_component = base_fe_degree;
+		static constexpr int fe_degree = base_fe_degree;
 		static constexpr unsigned int dofs_per_cell =
 					Utilities::fixed_int_power<base_fe_degree+1,dim>::value*dim/*=n_components*/;
 	};

@@ -742,6 +742,15 @@ SelectEvaluatorAnisotropic<FEType, n_q_points_1d,dim,base_fe_degree,Number>::eva
 {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
 
+	if (n_components == 1)
+	{
+		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+             FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
+             ::evaluate(shape_info, values_dofs_actual, values_quad,
+                        gradients_quad, hessians_quad, scratch_data,
+                        evaluate_values, evaluate_gradients, evaluate_hessians);
+	}
+
 	if (n_components == 2)
 	{
 		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
@@ -749,6 +758,7 @@ SelectEvaluatorAnisotropic<FEType, n_q_points_1d,dim,base_fe_degree,Number>::eva
              ::evaluate(shape_info, values_dofs_actual, values_quad,
                         gradients_quad, hessians_quad, scratch_data,
                         evaluate_values, evaluate_gradients, evaluate_hessians);
+
 		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
 		             FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
 		             ::evaluate(shape_info, values_dofs_actual, values_quad,
@@ -762,11 +772,13 @@ SelectEvaluatorAnisotropic<FEType, n_q_points_1d,dim,base_fe_degree,Number>::eva
              ::evaluate(shape_info, values_dofs_actual, values_quad,
                         gradients_quad, hessians_quad, scratch_data,
                         evaluate_values, evaluate_gradients, evaluate_hessians);
+
 		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
 		             FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
 		             ::evaluate(shape_info, values_dofs_actual, values_quad,
 		                        gradients_quad, hessians_quad, scratch_data,
 		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
 		internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
 		             FEType, n_q_points_1d, dim, base_fe_degree, Number,2>
 		             ::evaluate(shape_info, values_dofs_actual, values_quad,
@@ -790,11 +802,53 @@ SelectEvaluatorAnisotropic<FEType,n_q_points_1d,dim,base_fe_degree,Number>::inte
 	                        const bool               integrate_values,
 	                        const bool               integrate_gradients)
 {
-	  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
-           FEType, n_q_points_1d, dim, base_fe_degree, Number>
-           ::integrate(shape_info, values_dofs_actual, values_quad,
-                      gradients_quad, scratch_data,
-                      integrate_values, integrate_gradients);
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
+
+	if (n_components == 1)
+	{
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
+	if (n_components == 2)
+	{
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
+	if (n_components == 3)
+	{
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,1>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		  internal::FEEvaluationImplGen<internal::MatrixFreeFunctions::tensor_general,
+	           FEType, n_q_points_1d, dim, base_fe_degree, Number,2>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
 }
 
 #endif //DOXYGEN
