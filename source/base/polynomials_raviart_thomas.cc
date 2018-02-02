@@ -106,20 +106,6 @@ PolynomialsRaviartThomas<dim>::compute (const Point<dim>            &unit_point,
   p_third_derivatives.resize((third_derivatives.size() == 0) ? 0 : n_sub);
   p_fourth_derivatives.resize((fourth_derivatives.size() == 0) ? 0 : n_sub);
 
-	std::cout<<"tensor_pols_grad_mapping_inv[0][0]"<<std::endl;
-	for (int i=0; i<n_sub;i++)
-	{
-		std::cout<<tensor_pols_grad_mapping_inv[0][0][i]<<"    "<<std::endl;
-	}
-	std::cout<<std::endl;
-
-	std::cout<<"tensor_pols_grad_mapping_inv[0][1]"<<std::endl;
-	for (int i=0; i<n_sub;i++)
-	{
-		std::cout<<tensor_pols_grad_mapping_inv[0][1][i]<<"    "<<std::endl;
-	}
-		std::cout<<std::endl;
-
   for (unsigned int d=0; d<dim; ++d)
     {
       // First we copy the point. The
@@ -144,13 +130,8 @@ PolynomialsRaviartThomas<dim>::compute (const Point<dim>            &unit_point,
 
       for (unsigned int i=0; i<p_grads.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
-        {
-        	if (d==0)
-        	{
-        		std::cout<<"Direction = "<<(d1+d)%dim<<" Filling from index "<<tensor_pols_grad_mapping_inv[d][(d1+d)%dim][i]<<std::endl;
-        	}
         	grads[i+d*n_sub][d][(d1+d)%dim] = p_grads[tensor_pols_mapping_inv[d][i]][d1];
-        }
+
 
       for (unsigned int i=0; i<p_grad_grads.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
@@ -200,11 +181,7 @@ PolynomialsRaviartThomas<dim>::create_poly_mapping ()
 	const unsigned int n_sub = polynomial_space.n();
 
 	for (int c=0;c<n_components;c++)
-	{
 		tensor_pols_mapping_inv[c].resize(n_sub);
-		for (int d=0; d<dim; d++)
-			tensor_pols_grad_mapping_inv[c][d].resize(n_sub);
-	}
 
 	////Fill for values
 	//For first component, mapping is 1:1
@@ -212,9 +189,6 @@ PolynomialsRaviartThomas<dim>::create_poly_mapping ()
 	{
 		tensor_pols_mapping_inv[0][i] = i;
 	}
-
-	tensor_pols_grad_mapping_inv[0][0] = tensor_pols_mapping_inv[0];
-	tensor_pols_grad_mapping_inv[0][1] = tensor_pols_mapping_inv[0];
 
 	//FIXME This is only for dim=2
 	//Actual indices are locations corresponding to transposed matrix of calculated indices
@@ -234,9 +208,6 @@ PolynomialsRaviartThomas<dim>::create_poly_mapping ()
 		}
 	}
 
-	//Fill for derivatives - same for all directions  FIXME: This is currently only for dim=2
-	tensor_pols_grad_mapping_inv[1][0] = tensor_pols_mapping_inv[1];
-	tensor_pols_grad_mapping_inv[1][1] = tensor_pols_mapping_inv[1];
 }
 
 template class PolynomialsRaviartThomas<1>;
