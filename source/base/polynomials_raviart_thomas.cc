@@ -211,8 +211,10 @@ PolynomialsRaviartThomas<dim>::create_poly_mapping ()
 	for (int i=0; i<n_sub; i++)
 	{
 		tensor_pols_mapping_inv[0][i] = i;
-		tensor_pols_grad_mapping_inv[0][0][i] = i;
 	}
+
+	tensor_pols_grad_mapping_inv[0][0] = tensor_pols_mapping_inv[0];
+	tensor_pols_grad_mapping_inv[0][1] = tensor_pols_mapping_inv[0];
 
 	//FIXME This is only for dim=2
 	//Actual indices are locations corresponding to transposed matrix of calculated indices
@@ -234,9 +236,7 @@ PolynomialsRaviartThomas<dim>::create_poly_mapping ()
 
 	//Fill for derivatives - same for all directions  FIXME: This is currently only for dim=2
 	tensor_pols_grad_mapping_inv[1][0] = tensor_pols_mapping_inv[1];
-	tensor_pols_grad_mapping_inv[0][1] = tensor_pols_mapping_inv[0];
-	//tensor_pols_grad_mapping_inv[1][1] = Utilities::invert_permutation(tensor_pols_mapping_inv[1]);
-	tensor_pols_grad_mapping_inv[1][1] = tensor_pols_grad_mapping_inv[1][0];
+	tensor_pols_grad_mapping_inv[1][1] = tensor_pols_mapping_inv[1];
 }
 
 template class PolynomialsRaviartThomas<1>;
