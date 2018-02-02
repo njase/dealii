@@ -149,7 +149,7 @@ PolynomialsRaviartThomas<dim>::compute (const Point<dim>            &unit_point,
         	{
         		std::cout<<"Direction = "<<(d1+d)%dim<<" Filling from index "<<tensor_pols_grad_mapping_inv[d][(d1+d)%dim][i]<<std::endl;
         	}
-        	grads[i+d*n_sub][d][(d1+d)%dim] = p_grads[tensor_pols_grad_mapping_inv[d][(d1+d)%dim][i]][d1];
+        	grads[i+d*n_sub][d][(d1+d)%dim] = p_grads[tensor_pols_mapping_inv[d][i]][d1];
         }
 
       for (unsigned int i=0; i<p_grad_grads.size(); ++i)
