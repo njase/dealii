@@ -121,7 +121,8 @@ private:
   /*
    * Mapping from internal ordering of tensor product to actual ordering of tensor product polynomials
    */
-  std::vector<std::vector<int>> tensor_pols_mapping_inv;
+  std::array<std::vector<unsigned int>,dim> tensor_pols_mapping_inv;
+  std::array<std::array<std::vector<unsigned int>,dim>,dim> tensor_pols_grad_mapping_inv;
 
   /**
    * A static member function that creates the polynomial space we use to
