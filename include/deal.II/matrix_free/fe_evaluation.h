@@ -5640,6 +5640,15 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
   dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
   n_q_points (this->data->n_q_points)
 {
+	std::string message = "-------------------------------------------------------\n";
+	    message += "Mismatch in Finite Element as given in MatrixFree and FEEvaluation!\n";
+	    message += "DOFs per cell from MatrixFree object = ";
+	    message += Utilities::int_to_string(dofs_per_cell) + "\n";
+	    message += "DOFs per cell from FE details given to FEEvaluation object = ";
+	    message += Utilities::int_to_string(get_FEData<FEType,dim,0,base_fe_degree,0>::dofs_per_cell) + "\n";
+
+	    Assert (dofs_per_cell == (get_FEData<FEType,dim,0,base_fe_degree,0>::dofs_per_cell),
+	              ExcMessage(message));
   //check_template_arguments(fe_no, 0);
 }
 

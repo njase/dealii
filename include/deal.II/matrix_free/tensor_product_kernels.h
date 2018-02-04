@@ -1294,6 +1294,11 @@ namespace internal
       }
   }
 
+
+#ifdef __UT__
+#include <stdio.h>
+#endif
+
   //Modifications to existing kernel to support anisotropic tensor products
   template <int dim, int fe_degree, int n_q_points_1d, typename Number,
   	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other1>
@@ -1313,6 +1318,11 @@ namespace internal
     const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm) : 1); //FIXME TBD for dim=3
     const int stride    = Utilities::fixed_int_power<nn,direction>::value;
 
+#ifdef __UT__
+    printf("\n inside apply_anisotropic, (mm,mm_other,nn) = (%d,%d,%d)", mm, mm_other1, nn);
+    printf("\n b_blocks(1,2) = (%d,%d), Stride = %d", n_blocks1, n_blocks2,stride);
+#endif
+
     for (int i2=0; i2<n_blocks2; ++i2)
       {
         for (int i1=0; i1<n_blocks1; ++i1)
@@ -1325,6 +1335,9 @@ namespace internal
                 else
                   val0 = shape_data[col*n_q_points_1d];
                 Number res0 = val0 * in[0];
+#ifdef __UT__
+                printf("\n val0 = %f in[0] = %f res0 = %f", val0[0],in[0][0], res0[0]);
+#endif
                 for (int ind=1; ind<mm; ++ind)
                   {
                     if (dof_to_quad == true)
@@ -1332,11 +1345,17 @@ namespace internal
                     else
                       val0 = shape_data[col*n_q_points_1d+ind];
                     res0 += val0 * in[stride*ind];
+#ifdef __UT__
+                    printf("\n val0 = %f, Reading from index = %d a value in[index] = %f and calculating res0 = %f",val0[0],stride*ind,in[stride*ind][0],res0[0]);
+#endif
                   }
                 if (add == false)
                   out[stride*col]  = res0;
                 else
                   out[stride*col] += res0;
+#ifdef __UT__
+                printf("\n Storing res0 = %f at index = %d", res0[0],(stride*col));
+#endif
               }
 
             // increment: in regular case, just go to the next point in
