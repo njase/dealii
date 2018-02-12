@@ -147,6 +147,10 @@ public:
 
   virtual std::size_t memory_consumption () const;
 
+  const FullMatrix<double> & get_inverse_node_matrix() const;
+  unsigned int n_interior_dofs;
+  unsigned int n_face_dofs;
+
 private:
   /**
    * Only for internal use. Its full name is @p get_dofs_per_object_vector

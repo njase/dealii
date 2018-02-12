@@ -49,7 +49,8 @@ FE_RaviartThomas<dim>::FE_RaviartThomas (const unsigned int deg)
                            dim, deg+1, FiniteElementData<dim>::Hdiv),
     std::vector<bool>(PolynomialsRaviartThomas<dim>::compute_n_pols(deg), true),
     std::vector<ComponentMask>(PolynomialsRaviartThomas<dim>::compute_n_pols(deg),
-                               std::vector<bool>(dim,true)))
+                               std::vector<bool>(dim,true))),
+                               n_interior_dofs(0), n_face_dofs(0)
 {
   Assert (dim >= 2, ExcImpossibleInDim(dim));
   const unsigned int n_dofs = this->dofs_per_cell;
@@ -135,8 +136,6 @@ FE_RaviartThomas<dim>::clone() const
 //---------------------------------------------------------------------------
 
 
-//FIXME: Reorder the support points in lexicographic manner and work in unison with
-//convert_generalized_support_point_values_to_dof_values() below
 template <int dim>
 void
 FE_RaviartThomas<dim>::initialize_support_points (const unsigned int deg)
@@ -224,6 +223,9 @@ FE_RaviartThomas<dim>::initialize_support_points (const unsigned int deg)
 
   Assert (current == this->generalized_support_points.size(),
           ExcInternalError());
+
+  n_face_dofs = GeometryInfo<dim>::faces_per_cell*n_face_points;
+  n_interior_dofs = n_interior_points;
 }
 
 
@@ -479,14 +481,12 @@ convert_generalized_support_point_values_to_dof_values(const std::vector<Vector<
 
   std::fill(nodal_values.begin(), nodal_values.end(), 0.);
 
-  std::vector<double>    temp_nodal_values(nodal_values);
-
   const unsigned int n_face_points = boundary_weights.size(0);
   for (unsigned int face=0; face<GeometryInfo<dim>::faces_per_cell; ++face)
     for (unsigned int k=0; k<n_face_points; ++k)
       for (unsigned int i=0; i<boundary_weights.size(1); ++i)
         {
-    	  temp_nodal_values[i+face*this->dofs_per_face] += boundary_weights(k,i)
+          nodal_values[i+face*this->dofs_per_face] += boundary_weights(k,i)
                                                       * support_point_values[face*n_face_points+k](GeometryInfo<dim>::unit_normal_direction[face]);
         }
 
@@ -496,42 +496,7 @@ convert_generalized_support_point_values_to_dof_values(const std::vector<Vector<
   for (unsigned int k=0; k<interior_weights.size(0); ++k)
     for (unsigned int i=0; i<interior_weights.size(1); ++i)
       for (unsigned int d=0; d<dim; ++d)
-    	  temp_nodal_values[start_cell_dofs+i*dim+d] += interior_weights(k,i,d) * support_point_values[k+start_cell_points](d);
-
-  //Reorder and store to nodal_values
-  //This can be regarded somewhat as lexicographi ordering for RT element, and allows to
-  // nicely separate the component wise values which is required in MatrixFree
-  //FIXME: It is not a good thing to change the order of nodal_values with respect to order of point given
-  // in support_point_values. This is non-intuitive and against programming principles.
-  //Better is to change the order in which suppport points are returned by initialize_support_points()
-  //and then also change this function.
-  //Old ordering:
-  //			 <face points for component 1, face points for compnent 2...>,
-  //			 <1st interior point for component 1, 1st interior points for component 2...>
-  //			 <2nd interior point for component 1, 2nd interior points for component 2...>
-  //			 .....
-  //New ordering:
-  //			<Face points, interior points for component 1>,
-  //			<Face points, interior points for component 2> ....and so on
-  //count per component
-  unsigned int n_face_points_per_cell = boundary_weights.n_rows() * GeometryInfo<dim>::faces_per_cell;
-
-  const int nsp_per_comp = nodal_values.size()/dim;
-  const int nfp_per_comp = n_face_points_per_cell/dim;
-  const int nip_per_comp = nsp_per_comp - nfp_per_comp;
-
-  int current = 0;
-  for (int d=0; d<dim; d++)
-  {
-	  for (int i=0; i<nfp_per_comp; i++)
-		  nodal_values[nsp_per_comp*d+i] = temp_nodal_values[current++];
-  }
-
-  for (int i=0; i<nip_per_comp; i++)
-  {
-	  for (int d=0; d<dim; d++)
-		  nodal_values[nsp_per_comp*d+nfp_per_comp+i] = temp_nodal_values[current++];
-  }
+        nodal_values[start_cell_dofs+i*dim+d] += interior_weights(k,i,d) * support_point_values[k+start_cell_points](d);
 }
 
 
@@ -544,6 +509,12 @@ FE_RaviartThomas<dim>::memory_consumption () const
   return 0;
 }
 
+template <int dim>
+const FullMatrix<double> &
+FE_RaviartThomas<dim>::get_inverse_node_matrix() const
+{
+	return (this->inverse_node_matrix);
+}
 
 
 // explicit instantiations

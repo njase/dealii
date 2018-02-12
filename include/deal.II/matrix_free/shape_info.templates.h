@@ -328,6 +328,61 @@ namespace internal
         return scalar_lexicographic;
     }
 
+    //FIXME : Currently this supports dim=2 only, and k > 2,3.
+    //Old ordering:
+    //			 <face points for component 1, face points for compnent 2...>,
+    //			 <1st interior point for component 1, 1st interior points for component 2...>
+    //			 <2nd interior point for component 1, 2nd interior points for component 2...>
+    //			 .....
+    //New ordering:
+    //			<Face points, interior points for component 1>,
+    //			<Face points, interior points for component 2>,
+    //           ....and so on
+    //  The new ordering shows TP structure in each component
+    template <typename Number>
+    template <int dim>
+    void
+    ShapeInfo<Number>::raviart_thomas_lexicographic_renumber(const FE_RaviartThomas<dim> * fe)
+    {
+    	lexicographic_numbering.resize(fe->dofs_per_cell, numbers::invalid_unsigned_int);
+
+    	const int nfp_per_comp = fe->n_face_dofs/dim;
+    	const int nip_per_comp = fe->n_interior_dofs/dim;
+    	const int n_per_comp = nfp_per_comp + nip_per_comp;
+
+    	//Step1 : Reorder such that all (face+interior) points of a component are together, in the order of appearance
+    	int current = 0;
+    	for (int d=0; d<dim; d++)
+    		for (int i=0; i<nfp_per_comp; i++)
+    			lexicographic_numbering[n_per_comp*d+i] = current++;
+
+
+    	for (int i=0; i<nip_per_comp; i++)
+    		for (int d=0; d<dim; d++)
+    			lexicographic_numbering[n_per_comp*d+nfp_per_comp+i] = current++;
+
+
+    	//Step2: Reorder points of first component so that result has tensor product structure. second component already
+    	//       shows tensor product structure
+    	std::vector<unsigned int> temp(lexicographic_numbering);
+    	const int int_values_per_iter = fe->degree-1;
+    	const int face_values_per_iter = ((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
+    															(nfp_per_comp/nip_per_comp) :
+    															int_values_per_iter;
+
+    	for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
+    	{
+    		current = n*(face_values_per_iter+int_values_per_iter);
+    		for (int i=0; i<face_values_per_iter; i++)
+    			lexicographic_numbering[current+i] = temp[n+i*(int_values_per_iter+1)]; //for face points
+
+    		current += face_values_per_iter;
+    		for (int i=0; i<int_values_per_iter; i++)
+    			lexicographic_numbering[current+i] = temp[nfp_per_comp+n*int_values_per_iter+i]; //for internal points
+    	}
+    }
+
+
     template <typename Number>
     template <int dim>
     void ShapeInfo<Number>::internal_reinit_scalar (const Quadrature<1> &quad,
@@ -630,6 +685,9 @@ namespace internal
 
         fe_degree = fe->degree; //Note that for RT, this is max degree across all components/dimensions
         n_q_points_1d = quad.size();
+        n_q_points      = Utilities::fixed_power<dim>(n_q_points_1d);
+        //For tensor product FE like Lagrangian or RT, this division is exact
+        dofs_per_component_on_cell = fe_in.dofs_per_cell/vector_n_components;
 
         std::vector<unsigned int> scalar_lexicographic;
         Point<dim> unit_point;
@@ -654,10 +712,12 @@ namespace internal
         }
         else if (FEName::FE_RT == fe_name)
         {
+        	const FE_RaviartThomas<dim> * fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
+        	raviart_thomas_lexicographic_renumber(fe_rt);
         	//We dont need any different numbering
-        	  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
-        	  for (int i=0; i<fe_in.dofs_per_cell; i++)
-        		  lexicographic_numbering[i] = i;
+        	//  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
+        	//  for (int i=0; i<fe_in.dofs_per_cell; i++)
+        	//	  lexicographic_numbering[i] = i;
 
         	  pols = PolynomialsRaviartThomas<dim>::create_polynomials (fe_degree-1);
         	  polyspace.reserve(base_values_count);
@@ -666,13 +726,21 @@ namespace internal
         		  polyspace.emplace_back(PolynomialSpace<1>(pols[j]));
         		  Assert(polyspace[j].n() == n_dofs_1d[j],ExcMessage("Polynomial space size mismatch with expected dofs"));
         	  }
+
+        	  //For n = 2, the second component helps to obtain the required tensor product form
+        	  //for RT N matrices
+        	  //FIXME: Under debug
+        	  const FullMatrix<double> &inv_nodeM = fe_rt->get_inverse_node_matrix();
+
+        	  std::vector<unsigned int> index_set(dofs_per_component_on_cell);
+        	  unsigned int i = dofs_per_component_on_cell;
+        	  for (auto &index : index_set)
+        		  index = i++;
+
+        	  FullMatrix<double> C(dofs_per_component_on_cell,dofs_per_component_on_cell);
+        	  C.extract_submatrix_from(inv_nodeM,index_set,index_set);
+
         }
-
-
-        n_q_points      = Utilities::fixed_power<dim>(n_q_points_1d);
-
-        //For tensor product FE like Lagrangian or RT, this division is exact
-        dofs_per_component_on_cell = fe_in.dofs_per_cell/vector_n_components;
 
         this->base_shape_gradients.resize(base_values_count);
         this->base_shape_values.resize(base_values_count);

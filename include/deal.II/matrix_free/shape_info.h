@@ -144,6 +144,10 @@ namespace internal
       	  lexicographic_renumber(const FiniteElement<dim> &fe,
       			  	  	  		const unsigned int base_element_number);
 
+      template <int dim>
+      	  void
+      	  raviart_thomas_lexicographic_renumber(const FE_RaviartThomas<dim> * fe);
+
     public:
       /**
        * Encodes the type of element detected at construction. FEEvaluation
