@@ -738,11 +738,6 @@ namespace internal
         	const FE_RaviartThomas<dim> * fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
         	raviart_thomas_lexicographic_renumber(fe_rt);
 
-        	//We dont need any different numbering
-        	//  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
-        	//  for (int i=0; i<fe_in.dofs_per_cell; i++)
-        	//	  lexicographic_numbering[i] = i;
-
         	  pols = PolynomialsRaviartThomas<dim>::create_polynomials (fe_degree-1);
         	  polyspace.reserve(base_values_count);
         	  for (int j=0; j<base_values_count; j++)
@@ -810,6 +805,7 @@ namespace internal
           	tensor_inv_nodal.push_back(B);
           	tensor_inv_nodal.push_back(A);
 
+#if _UT__
           	//Only for debugging
     		std::cout<<"A Matrix is"<<std::endl;
     		for (unsigned int i=0; i<fe_degree; i++)
@@ -832,6 +828,7 @@ namespace internal
     			std::cout<<std::endl;
     		}
     		std::cout<<std::endl<<std::endl;
+#endif
         }
 
         this->base_shape_gradients.resize(base_values_count);
@@ -840,8 +837,6 @@ namespace internal
 
         for (int j=0; j<base_values_count; j++)
         {
-        	std::cout<<"At j = "<<j<<std::endl; //Debug only
-
         	const unsigned int array_size = n_dofs_1d[j]*n_q_points_1d;
 
         	this->base_shape_gradients[j].resize_fast (array_size);
@@ -868,10 +863,6 @@ namespace internal
 
                 	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
                 	{
-                		std::cout<<"p_values are "<<std::endl;
-                		for (int k=0; k<psize; k++)
-                			std::cout<<"  "<<p_values[k];
-
                 		this->base_shape_values[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_values[0];
                 		for (int k=1; k<psize; k++)
                 			this->base_shape_values[j][i*n_q_points_1d+q] = this->base_shape_values[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_values[k];
@@ -882,15 +873,6 @@ namespace internal
                 		//base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
                 	}
         		}
-
-        		//Only for debugguing
-        		//std::cout<<"base_shape_values are "<<std::endl;
-        		//for (int k=0; k<array_size; k++)
-        		//{
-        		//	Number n = this->base_shape_values[j][k];
-        		//	std::cout<<"n "<<n<<std::endl;
-        		//}
-
         	}
 
         	if (FEName::FE_Q_TP == fe_name)
