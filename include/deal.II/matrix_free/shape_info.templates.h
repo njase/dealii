@@ -351,37 +351,25 @@ namespace internal
     	const int nip_per_comp = fe->n_interior_dofs/dim;
     	const int n_per_comp = nfp_per_comp + nip_per_comp;
 
-    	std::cout<<"nfp_per_comp is "<<nfp_per_comp << " nip_per_comp is "<<nip_per_comp;
-    	std::cout<<std::endl;
-
     	//Step1 : Reorder such that all (face+interior) points of a component are together, in the order of appearance
     	int current = 0;
     	for (int d=0; d<dim; d++)
     		for (int i=0; i<nfp_per_comp; i++)
     			lexicographic_numbering[n_per_comp*d+i] = current++;
 
-    	//Only for debugging
+    	for (int i=0; i<nip_per_comp; i++)
+    		for (int d=0; d<dim; d++)
+    			lexicographic_numbering[n_per_comp*d+nfp_per_comp+i] = current++;
+
+#ifdef __UT__
+    	//Only for debugging - uptil here is fine for any degree in dim2
     	std::cout<<std::endl;
 		std::cout<<"First reordering lexicographic result is"<<std::endl;
 		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
 		{
 			std::cout <<"   "<<lexicographic_numbering[j];
-			//std::cout<<std::endl;
 		}
-
-
-    	for (int i=0; i<nip_per_comp; i++)
-    		for (int d=0; d<dim; d++)
-    			lexicographic_numbering[n_per_comp*d+nfp_per_comp+i] = current++;
-
-    	//Only for debugging
-    	std::cout<<std::endl;
-		std::cout<<"Before reordering lexicographic result is"<<std::endl;
-		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
-		{
-			std::cout <<"   "<<lexicographic_numbering[j];
-			//std::cout<<std::endl;
-		}
+#endif
 
 
     	//Step2: Reorder points of first component so that result has tensor product structure. second component already
@@ -391,9 +379,6 @@ namespace internal
     	const int face_values_per_iter = ((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
     															(nfp_per_comp/nip_per_comp) :
     															int_values_per_iter;
-
-    	std::cout<<"face_values_per_iter is "<<face_values_per_iter << " int_values_per_iter is "<<int_values_per_iter;
-    	std::cout<<std::endl;
 
     	for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
     	{
@@ -406,7 +391,8 @@ namespace internal
     			lexicographic_numbering[current+i] = temp[nfp_per_comp+n*int_values_per_iter+i]; //for internal points
     	}
 
-    	//Only for debugging
+#ifdef __UT__
+    	//Only for debugging - incorrect result for deg>2
     	std::cout<<std::endl;
 		std::cout<<"lexicographic result is"<<std::endl;
 		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
@@ -414,6 +400,7 @@ namespace internal
 			std::cout <<"   "<<lexicographic_numbering[j];
 			//std::cout<<std::endl;
 		}
+#endif
     }
 
 
