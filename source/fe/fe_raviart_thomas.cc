@@ -55,6 +55,9 @@ FE_RaviartThomas<dim>::FE_RaviartThomas (const unsigned int deg)
   Assert (dim >= 2, ExcImpossibleInDim(dim));
   const unsigned int n_dofs = this->dofs_per_cell;
 
+  n_face_dofs = GeometryInfo<dim>::faces_per_cell*std::pow(deg+1,dim-1);
+  n_interior_dofs = deg*dim*std::pow(deg+1,dim-1);
+
   this->mapping_type = mapping_raviart_thomas;
   // First, initialize the
   // generalized support points and
@@ -223,9 +226,6 @@ FE_RaviartThomas<dim>::initialize_support_points (const unsigned int deg)
 
   Assert (current == this->generalized_support_points.size(),
           ExcInternalError());
-
-  n_face_dofs = GeometryInfo<dim>::faces_per_cell*n_face_points;
-  n_interior_dofs = n_interior_points;
 }
 
 

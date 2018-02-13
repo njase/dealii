@@ -26,6 +26,7 @@
 #include <deal.II/fe/fe_dgp.h>
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_q_dg0.h>
+#include <deal.II/base/aligned_vector.h> //Debug only
 
 #include <deal.II/matrix_free/shape_info.h>
 
@@ -350,16 +351,37 @@ namespace internal
     	const int nip_per_comp = fe->n_interior_dofs/dim;
     	const int n_per_comp = nfp_per_comp + nip_per_comp;
 
+    	std::cout<<"nfp_per_comp is "<<nfp_per_comp << " nip_per_comp is "<<nip_per_comp;
+    	std::cout<<std::endl;
+
     	//Step1 : Reorder such that all (face+interior) points of a component are together, in the order of appearance
     	int current = 0;
     	for (int d=0; d<dim; d++)
     		for (int i=0; i<nfp_per_comp; i++)
     			lexicographic_numbering[n_per_comp*d+i] = current++;
 
+    	//Only for debugging
+    	std::cout<<std::endl;
+		std::cout<<"First reordering lexicographic result is"<<std::endl;
+		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
+		{
+			std::cout <<"   "<<lexicographic_numbering[j];
+			//std::cout<<std::endl;
+		}
+
 
     	for (int i=0; i<nip_per_comp; i++)
     		for (int d=0; d<dim; d++)
     			lexicographic_numbering[n_per_comp*d+nfp_per_comp+i] = current++;
+
+    	//Only for debugging
+    	std::cout<<std::endl;
+		std::cout<<"Before reordering lexicographic result is"<<std::endl;
+		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
+		{
+			std::cout <<"   "<<lexicographic_numbering[j];
+			//std::cout<<std::endl;
+		}
 
 
     	//Step2: Reorder points of first component so that result has tensor product structure. second component already
@@ -369,6 +391,9 @@ namespace internal
     	const int face_values_per_iter = ((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
     															(nfp_per_comp/nip_per_comp) :
     															int_values_per_iter;
+
+    	std::cout<<"face_values_per_iter is "<<face_values_per_iter << " int_values_per_iter is "<<int_values_per_iter;
+    	std::cout<<std::endl;
 
     	for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
     	{
@@ -380,6 +405,15 @@ namespace internal
     		for (int i=0; i<int_values_per_iter; i++)
     			lexicographic_numbering[current+i] = temp[nfp_per_comp+n*int_values_per_iter+i]; //for internal points
     	}
+
+    	//Only for debugging
+    	std::cout<<std::endl;
+		std::cout<<"lexicographic result is"<<std::endl;
+		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
+		{
+			std::cout <<"   "<<lexicographic_numbering[j];
+			//std::cout<<std::endl;
+		}
     }
 
 
@@ -620,7 +654,7 @@ namespace internal
                  const unsigned int base_element_number)
     {
     	unsigned int vector_n_components = fe_in.n_components();
-    	if (vector_n_components > 3 || dim > 3)
+    	if (vector_n_components > 2 || dim > 2)
     		Assert (false, ExcNotImplemented());
 
 
@@ -692,8 +726,10 @@ namespace internal
         std::vector<unsigned int> scalar_lexicographic;
         Point<dim> unit_point;
 
+        //Required for RT
         std::vector<std::vector<Polynomials::Polynomial<double>>> pols;
         std::vector<PolynomialSpace<1>> polyspace;
+        std::vector<FullMatrix<double>> tensor_inv_nodal;
 
         if (FEName::FE_Q_TP == fe_name)
         {
@@ -714,6 +750,7 @@ namespace internal
         {
         	const FE_RaviartThomas<dim> * fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
         	raviart_thomas_lexicographic_renumber(fe_rt);
+
         	//We dont need any different numbering
         	//  lexicographic_numbering.resize(fe_in.dofs_per_cell, numbers::invalid_unsigned_int);
         	//  for (int i=0; i<fe_in.dofs_per_cell; i++)
@@ -725,21 +762,89 @@ namespace internal
         	  {
         		  polyspace.emplace_back(PolynomialSpace<1>(pols[j]));
         		  Assert(polyspace[j].n() == n_dofs_1d[j],ExcMessage("Polynomial space size mismatch with expected dofs"));
-        	  }
+        	 }
 
-        	  //For n = 2, the second component helps to obtain the required tensor product form
+        	  //For n = 2, the last component helps to obtain the required tensor product form
         	  //for RT N matrices
-        	  //FIXME: Under debug
-        	  const FullMatrix<double> &inv_nodeM = fe_rt->get_inverse_node_matrix();
+        	  //Reorder and extract last component from tra(inverse nodal matrix)
+          	  const FullMatrix<double> &inv_nodeM = fe_rt->get_inverse_node_matrix();
 
-        	  std::vector<unsigned int> index_set(dofs_per_component_on_cell);
-        	  unsigned int i = dofs_per_component_on_cell;
-        	  for (auto &index : index_set)
-        		  index = i++;
+          	  std::vector<unsigned int> row_index_set(dofs_per_component_on_cell);
+          	  std::vector<unsigned int> col_index_set(dofs_per_component_on_cell);
 
-        	  FullMatrix<double> C(dofs_per_component_on_cell,dofs_per_component_on_cell);
-        	  C.extract_submatrix_from(inv_nodeM,index_set,index_set);
+          	  int i = (dim-1)*dofs_per_component_on_cell;
+          	  for (auto &index : row_index_set)
+          	        index = i++;
 
+          	  i = (dim-1)*dofs_per_component_on_cell;
+          	  for (auto &index : col_index_set)
+          	        index = lexicographic_numbering[i++];
+
+          	  FullMatrix<double> T(dofs_per_component_on_cell,dofs_per_component_on_cell);
+          	  T.extract_submatrix_from(inv_nodeM,row_index_set,col_index_set);
+
+          	  //We know that a tensor product structure exists in T as:
+          	  // tra(T) = B \otimes A
+          	  // where A = kxk matrix
+          	  // B = (k+1)x(k+1) matrix
+          	  //e.g. for k=1, (3x3)\otimes (2x2) structrue
+          	  FullMatrix<double> tempM(fe_degree,fe_degree);
+          	  FullMatrix<double> A(fe_degree,fe_degree), B(fe_degree+1,fe_degree+1);
+
+          	  std::vector<int> v_row(fe_degree), v_col(fe_degree);
+          	  std::iota(std::begin(v_row),std::end(v_row),0);
+          	  A.extract_submatrix_from(T,v_row,v_row);
+
+          	  B(0,0) = 1.0;
+
+          	  for (int i=0; i<(fe_degree+1);i++)
+          	  {
+          		  for (int j=0; j<(fe_degree+1); j++)
+          		  {
+          			  if (i==0 && j==0)
+          				  continue;
+
+          			  std::iota(std::begin(v_row),std::end(v_row),i*fe_degree);
+          			  std::iota(std::begin(v_col),std::end(v_col),j*fe_degree);
+          			  tempM.extract_submatrix_from(T,v_row,v_col);
+          			  double val = std::numeric_limits<double>::lowest();
+          			  for (int x=0; x<fe_degree; x++)
+          				  for (int y=0; y<fe_degree; y++)
+          					  if (std::fabs(A(x,y)) > 10e-4)
+          						  val = std::max(val,tempM(x,y)/A(x,y)); //too small values of tempM should not bias result
+
+          			  B(j,i) = val; //tranposed
+          		  }
+          	  }
+          	tempM = A;
+          	A.copy_transposed(tempM);
+
+          	//We insert in reverse order
+          	tensor_inv_nodal.push_back(B);
+          	tensor_inv_nodal.push_back(A);
+
+          	//Only for debugging
+    		std::cout<<"A Matrix is"<<std::endl;
+    		for (unsigned int i=0; i<fe_degree; i++)
+    		{
+    			for (unsigned int j=0; j<fe_degree; j++)
+    			{
+    				std::cout <<"   "<<tensor_inv_nodal[1](i,j);
+    			}
+    			std::cout<<std::endl;
+    		}
+    		std::cout<<std::endl<<std::endl;
+
+    		std::cout<<"B Matrix is"<<std::endl;
+    		for (unsigned int i=0; i<fe_degree+1; i++)
+    		{
+    			for (unsigned int j=0; j<fe_degree+1; j++)
+    			{
+    				std::cout <<"   "<<tensor_inv_nodal[0](i,j);
+    			}
+    			std::cout<<std::endl;
+    		}
+    		std::cout<<std::endl<<std::endl;
         }
 
         this->base_shape_gradients.resize(base_values_count);
@@ -748,6 +853,8 @@ namespace internal
 
         for (int j=0; j<base_values_count; j++)
         {
+        	std::cout<<"At j = "<<j<<std::endl; //Debug only
+
         	const unsigned int array_size = n_dofs_1d[j]*n_q_points_1d;
 
         	this->base_shape_gradients[j].resize_fast (array_size);
@@ -774,11 +881,29 @@ namespace internal
 
                 	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
                 	{
-                		base_shape_values[j][i*n_q_points_1d+q] = p_values[i];
-                		base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];
-                		base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
+                		std::cout<<"p_values are "<<std::endl;
+                		for (int k=0; k<psize; k++)
+                			std::cout<<"  "<<p_values[k];
+
+                		this->base_shape_values[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_values[0];
+                		for (int k=1; k<psize; k++)
+                			this->base_shape_values[j][i*n_q_points_1d+q] = this->base_shape_values[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_values[k];
+
+                		//FIXME: TODO for grads and hessians
+                		//base_shape_values[j][i*n_q_points_1d+q] = p_values[i];
+                		//base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];
+                		//base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
                 	}
         		}
+
+        		//Only for debugguing
+        		//std::cout<<"base_shape_values are "<<std::endl;
+        		//for (int k=0; k<array_size; k++)
+        		//{
+        		//	Number n = this->base_shape_values[j][k];
+        		//	std::cout<<"n "<<n<<std::endl;
+        		//}
+
         	}
 
         	if (FEName::FE_Q_TP == fe_name)
@@ -795,9 +920,9 @@ namespace internal
             		{
             			Point<1> q_point = quad.get_points()[q];
 
-            			base_shape_values[j][i*n_q_points_1d+q] = temp_fe.shape_value(my_i,q_point);
-            			base_shape_gradients[j][i*n_q_points_1d+q] = temp_fe.shape_grad(my_i,q_point)[0];
-            			base_shape_hessians[j][i*n_q_points_1d+q] = temp_fe.shape_grad_grad(my_i,q_point)[0][0];
+            			this->base_shape_values[j][i*n_q_points_1d+q] = temp_fe.shape_value(my_i,q_point);
+            			this->base_shape_gradients[j][i*n_q_points_1d+q] = temp_fe.shape_grad(my_i,q_point)[0];
+            			this->base_shape_hessians[j][i*n_q_points_1d+q] = temp_fe.shape_grad_grad(my_i,q_point)[0][0];
             		}
             	}
         	}
