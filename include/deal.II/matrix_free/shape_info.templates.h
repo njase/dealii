@@ -641,11 +641,11 @@ namespace internal
                  const unsigned int base_element_number)
     {
     	unsigned int vector_n_components = fe_in.n_components();
+    	//FIXME Extend for dim=3
     	if (vector_n_components > 2 || dim > 2)
     		Assert (false, ExcNotImplemented());
 
 
-    	//limited support currently
     	enum class FEName { FE_Unknown=0, FE_RT=1, FE_Q_TP=2 };
     	FEName fe_name = FEName::FE_Unknown;
 
@@ -675,8 +675,8 @@ namespace internal
     		fe_name = FEName::FE_RT;
 
     		base_values_count = 2;
-    		n_dofs_1d[0] = fe->degree+1; //For Qk+1
-    		n_dofs_1d[1] = fe->degree; //For Qk
+    		n_dofs_1d[0] = fe->degree+1; //Qk+1
+    		n_dofs_1d[1] = fe->degree; //Qk
 
         	for (int c=0; c<vector_n_components; c++)
         		for (int d=0; d<dim; d++)
@@ -710,17 +710,18 @@ namespace internal
         //For tensor product FE like Lagrangian or RT, this division is exact
         dofs_per_component_on_cell = fe_in.dofs_per_cell/vector_n_components;
 
+        //Required for FE_Q
         std::vector<unsigned int> scalar_lexicographic;
         Point<dim> unit_point;
 
         //Required for RT
-        std::vector<std::vector<Polynomials::Polynomial<double>>> pols;
+        std::vector<std::vector<Polynomials::Polynomial<double>>> pols; //1-D polynomials
         std::vector<PolynomialSpace<1>> polyspace;
-        std::vector<FullMatrix<double>> tensor_inv_nodal;
+        std::vector<FullMatrix<double>> tensor_inv_nodal; //tensor form of inverse nodal matrix
 
         if (FEName::FE_Q_TP == fe_name)
         {
-        	//Copied from internal_reinit_scalar
+        	//Similar to internal_reinit_scalar
             Assert(fe->n_components() == 1,ExcMessage("Expected a scalar element"));
 
             scalar_lexicographic = lexicographic_renumber(fe_in, base_element_number);
@@ -792,16 +793,16 @@ namespace internal
           			  double val = std::numeric_limits<double>::lowest();
           			  for (int x=0; x<fe_degree; x++)
           				  for (int y=0; y<fe_degree; y++)
-          					  if (std::fabs(A(x,y)) > 10e-4)
+          					  if (std::fabs(A(x,y)) > 10e-6) //Avoid division by ~zero, chosen by experimentation
           						  val = std::max(val,tempM(x,y)/A(x,y)); //too small values of tempM should not bias result
 
-          			  B(j,i) = val; //tranposed
+          			  B(j,i) = val; //transposed
           		  }
           	  }
           	tempM = A;
           	A.copy_transposed(tempM);
 
-          	//We insert in reverse order
+          	//push order is important for pop later
           	tensor_inv_nodal.push_back(B);
           	tensor_inv_nodal.push_back(A);
 
@@ -863,14 +864,19 @@ namespace internal
 
                 	for (unsigned int i=0; i<n_dofs_1d[j]; ++i)
                 	{
+                		// Dot product of vectors
                 		this->base_shape_values[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_values[0];
                 		for (int k=1; k<psize; k++)
                 			this->base_shape_values[j][i*n_q_points_1d+q] = this->base_shape_values[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_values[k];
 
-                		//FIXME: TODO for grads and hessians
-                		//base_shape_values[j][i*n_q_points_1d+q] = p_values[i];
-                		//base_shape_gradients[j][i*n_q_points_1d+q] = p_grads[i][0];
-                		//base_shape_hessians[j][i*n_q_points_1d+q] = p_grad_grads[i][0][0];
+                		this->base_shape_gradients[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_grads[0][0];
+                		for (int k=1; k<psize; k++)
+                		     this->base_shape_gradients[j][i*n_q_points_1d+q] = this->base_shape_gradients[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_grads[k][0];
+
+                		//TODO: Yet to be verified for hessians
+                		this->base_shape_hessians[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_grad_grads[0][0][0];
+                		for (int k=1; k<psize; k++)
+                		     this->base_shape_hessians[j][i*n_q_points_1d+q] = this->base_shape_hessians[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_grad_grads[k][0][0];
                 	}
         		}
         	}
