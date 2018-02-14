@@ -3905,8 +3905,21 @@ FEEvaluationBase<dim,n_components_,Number>
           internal::ExcAccessToUninitializedField());
   AssertIndexRange (q_point, this->data->n_q_points);
   Tensor<1,n_components_,VectorizedArray<Number> > return_value;
-  for (unsigned int comp=0; comp<n_components; comp++)
-    return_value[comp] = this->values_quad[comp][q_point];
+  if (use_non_primitive)
+  {
+  	Assert (this->cell_type == internal::MatrixFreeFunctions::cartesian==true,
+	          ExcNotImplemented());
+  	//The current functionality is limited to Raviart Thomas elements (and FE_Q)
+  	//Evaluate Piola transform
+  	//cartesian_data[0] stores inverse diagonal jacobian..so invert it again
+  	for (unsigned int comp=0; comp<n_components; comp++)
+    	return_value[comp] = this->values_quad[comp][q_point]/(cartesian_data[0][comp] * J_value[0]);
+  }
+  else
+  {
+  	for (unsigned int comp=0; comp<n_components; comp++)
+    	return_value[comp] = this->values_quad[comp][q_point];
+  }
   return return_value;
 }
 
