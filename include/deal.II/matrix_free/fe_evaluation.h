@@ -3912,6 +3912,7 @@ FEEvaluationBase<dim,n_components_,Number>
   	//The current functionality is limited to Raviart Thomas elements (and FE_Q)
   	//Evaluate Piola transform
   	//cartesian_data[0] stores inverse diagonal jacobian..so invert it again
+  	//Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
   	for (unsigned int comp=0; comp<n_components; comp++)
     	return_value[comp] = this->values_quad[comp][q_point]/(cartesian_data[0][comp] * J_value[0]);
   }
@@ -3940,14 +3941,35 @@ FEEvaluationBase<dim,n_components_,Number>
   // Cartesian cell
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-      for (unsigned int comp=0; comp<n_components; comp++)
-        for (unsigned int d=0; d<dim; ++d)
-          grad_out[comp][d] = (this->gradients_quad[comp][d][q_point] *
+	  if (use_non_primitive)
+	  {
+		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
+		  //Evaluate Piola transform gradient to the same extent as dealii
+		  // See mapping_piola_gradient in class Mapping<dim,spacedim>::transform()
+		  //Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
+		  for (unsigned int comp=0; comp<n_components; comp++)
+		  {
+			  for (unsigned int d=0; d<dim; ++d)
+			  {
+				  grad_out[comp][d] = this->gradients_quad[comp][d][q_point]/J_value[0];
+				  if (comp != d)
+					  grad_out[comp][d] *= (cartesian_data[0][d] / cartesian_data[0][comp]);
+			  }
+		  }
+	  }
+	  else
+	  {
+		  for (unsigned int comp=0; comp<n_components; comp++)
+			  for (unsigned int d=0; d<dim; ++d)
+				  grad_out[comp][d] = (this->gradients_quad[comp][d][q_point] *
                                cartesian_data[0][d]);
+	  }
     }
   // cell with general/affine Jacobian
   else
     {
+	  Assert (!use_non_primitive==true, ExcNotImplemented());
+
       const Tensor<2,dim,VectorizedArray<Number> > &jac =
         this->cell_type == internal::MatrixFreeFunctions::general ?
         jacobian[q_point] : jacobian[0];
@@ -4311,11 +4333,32 @@ FEEvaluationBase<dim,n_components_,Number>
 #endif
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-      const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
-      for (unsigned int comp=0; comp<n_components; comp++)
-        for (unsigned int d=0; d<dim; ++d)
-          this->gradients_quad[comp][d][q_point] = (grad_in[comp][d] *
-                                                    cartesian_data[0][d] * JxW);
+	  if (use_non_primitive)
+	  {
+		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
+		  //Evaluate Piola transform gradient to the same extent as dealii
+		  // See mapping_piola_gradient in class Mapping<dim,spacedim>::transform()
+		  //Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
+		  for (unsigned int comp=0; comp<n_components; comp++)
+		  {
+			  for (unsigned int d=0; d<dim; ++d)
+			  {
+				  this->gradients_quad[comp][d][q_point] =
+						  (grad_in[comp][d] * quadrature_weights[q_point]); // *(J_value[0]/J_value[0]) = 1
+				  if (comp !=d)
+					  this->gradients_quad[comp][d][q_point] *= (cartesian_data[0][d] / cartesian_data[0][comp]);
+			  }
+		  }
+	  }
+	  else
+	  {
+		  const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
+
+		  for (unsigned int comp=0; comp<n_components; comp++)
+			  for (unsigned int d=0; d<dim; ++d)
+				  this->gradients_quad[comp][d][q_point] = (grad_in[comp][d] *
+						  	  	  	  	  	  	  	 cartesian_data[0][d] * JxW);
+	  }
     }
   else
     {
