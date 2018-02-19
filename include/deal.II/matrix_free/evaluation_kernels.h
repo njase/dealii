@@ -896,6 +896,8 @@ namespace internal
   };
 
 
+  //Evaluate of both values and gradients is of type tr(A)*U*B
+  //Hessians is TBD. dim=3 is TBD
   template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
   		  int dim, int base_fe_degree, typename Number, int c>
   inline
@@ -984,34 +986,34 @@ namespace internal
             // grad x
             if (evaluate_gradients == true)
               {
-            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
-            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,gradients_quad[c][0]);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2+1>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,n_q_points_1d>(shape_info.shape_values_vec[c][1],temp1,gradients_quad[c][0]);
               }
             if (evaluate_hessians == true)
               {
                 // grad xy
                 if (evaluate_gradients == false)
-                	apply_anisotropic<dim,fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
-                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,hessians_quad[c][d1+d1]);
+                	apply_anisotropic<dim,fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2+1>(shape_info.shape_gradients_vec[c][0],values_dofs[c], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2+1>(shape_info.shape_gradients_vec[c][1],temp1,hessians_quad[c][d1+d1]);
 
                 // grad xx
-                apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_hessians_vec[c][0],values_dofs[c], temp1);
-                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, hessians_quad[c][0]);
+                apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,true,false,fe_deg_y2+1>(shape_info.shape_hessians_vec[c][0],values_dofs[c], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1, hessians_quad[c][0]);
               }
 
 
             // grad y
-            apply_anisotropic<dim, fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
+            apply_anisotropic<dim, fe_deg_x2, n_q_points_1d,VecArr,0,true,false,fe_deg_y2+1>(shape_info.shape_values_vec[c][0],values_dofs[c], temp1);
             if (evaluate_gradients == true)
-            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,gradients_quad[c][d1]);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,n_q_points_1d>(shape_info.shape_gradients_vec[c][1],temp1,gradients_quad[c][d1]);
 
             // grad yy
             if (evaluate_hessians == true)
-               apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
+               apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2+1>(shape_info.shape_hessians_vec[c][1],temp1, hessians_quad[c][d1]);
 
             // val: can use values applied in x
             if (evaluate_values == true)
-            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,values_quad[c]);
+            	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,true,false,n_q_points_1d>(shape_info.shape_values_vec[c][1],temp1,values_quad[c]);
           }
         break;
 
@@ -1097,6 +1099,8 @@ namespace internal
   }
 
 
+  //Integration of both values and gradients is of type A*U*tr(B)
+  //dim=3 is TBD
   template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
   		  int dim, int base_fe_degree, typename Number, int c>
   inline
@@ -1182,25 +1186,25 @@ namespace internal
             if (integrate_values == true)
               {
                 // val
-            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],values_quad[c], temp1);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,n_q_points_1d>(shape_info.shape_values_vec[c][0],values_quad[c], temp1);
                 //grad x
                 if (integrate_gradients == true)
-                  apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,true,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
-                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1,values_dofs[c]);
+                  apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,true,n_q_points_1d>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1,values_dofs[c]);
               }
             if (integrate_gradients == true)
               {
                 // grad y
-            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_values_vec[c][0],gradients_quad[c][d1],temp1);
+            	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,n_q_points_1d>(shape_info.shape_values_vec[c][0],gradients_quad[c][d1],temp1);
                 if (integrate_values == false)
                   {
-                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2>(shape_info.shape_gradients_vec[c][1],temp1,values_dofs[c]);
+                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,false,fe_deg_x2+1>(shape_info.shape_gradients_vec[c][1],temp1,values_dofs[c]);
                     //grad x
-                	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,fe_deg_y2>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
-                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
+                	apply_anisotropic<dim,fe_deg_x2,n_q_points_1d,VecArr,0,false,false,n_q_points_1d>(shape_info.shape_gradients_vec[c][0],gradients_quad[c][0], temp1);
+                	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
                   }
                 else
-                  apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
+                  apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
               }
           }
         break;

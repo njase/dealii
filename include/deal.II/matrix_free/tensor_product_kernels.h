@@ -1294,95 +1294,94 @@ namespace internal
       }
   }
 
-
+#define __UT__
 #ifdef __UT__
 #include <stdio.h>
 #endif
 
   //Modifications to existing kernel to support anisotropic tensor products
   template <int dim, int fe_degree, int n_q_points_1d, typename Number,
-  	  	    int direction, bool dof_to_quad, bool add, int fe_degree_other1>
+  	  	    int direction, bool dof_to_quad, bool add, int inter_dim>
   inline
   void
   apply_anisotropic (const Number *shape_data,
-           const Number in [],
-           Number       out [])
-  {
-    AssertIndexRange (direction, dim);
-    const int mm     = dof_to_quad ? (fe_degree+1) : n_q_points_1d,
-              nn     = dof_to_quad ? n_q_points_1d : (fe_degree+1),
-              mm_other1 = dof_to_quad ? (fe_degree_other1+1) : n_q_points_1d;
-              //mm_other2 = dof_to_quad ? (fe_degree_other2+1) : n_q_points_1d;
+             const Number in [],
+             Number       out [])
+    {
+      AssertIndexRange (direction, dim);
+      const int mm     = dof_to_quad ? (fe_degree+1) : n_q_points_1d,
+                nn     = dof_to_quad ? n_q_points_1d : (fe_degree+1);
 
-    const int n_blocks1 = (dim > 1 ? (direction > 0 ? nn : mm_other1) : 1);
-    const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm) : 1); //FIXME TBD for dim=3
-    const int stride    = Utilities::fixed_int_power<nn,direction>::value;
 
-#ifdef __UT__
-    printf("\n inside apply_anisotropic, (mm,mm_other,nn) = (%d,%d,%d)", mm, mm_other1, nn);
-    printf("\n b_blocks(1,2) = (%d,%d), Stride = %d", n_blocks1, n_blocks2,stride);
-#endif
+      const int n_blocks1 = (dim > 1 ? inter_dim : 1);
+      const int n_blocks2 = (dim > 2 ? (direction > 1 ? nn : mm) : 1); //FIXME for dim=3
+      const int stride    = Utilities::fixed_int_power<inter_dim,direction>::value; //FIXME for dim=3
 
-    for (int i2=0; i2<n_blocks2; ++i2)
-      {
-        for (int i1=0; i1<n_blocks1; ++i1)
-          {
-            for (int col=0; col<nn; ++col)
-              {
-                Number val0;
-                if (dof_to_quad == true)
-                  val0 = shape_data[col];
-                else
-                  val0 = shape_data[col*n_q_points_1d];
-                Number res0 = val0 * in[0];
-#ifdef __UT__
-                printf("\n val0 = %f in[0] = %f res0 = %f", val0[0],in[0][0], res0[0]);
-#endif
-                for (int ind=1; ind<mm; ++ind)
-                  {
-                    if (dof_to_quad == true)
-                      val0 = shape_data[ind*n_q_points_1d+col];
-                    else
-                      val0 = shape_data[col*n_q_points_1d+ind];
-                    res0 += val0 * in[stride*ind];
-#ifdef __UT__
-                    printf("\n val0 = %f, Reading from index = %d a value in[index] = %f and calculating res0 = %f",val0[0],stride*ind,in[stride*ind][0],res0[0]);
-#endif
-                  }
-                if (add == false)
-                  out[stride*col]  = res0;
-                else
-                  out[stride*col] += res0;
-#ifdef __UT__
-                printf("\n Storing res0 = %f at index = %d", res0[0],(stride*col));
-#endif
-              }
+  #ifdef __UT__
+      printf("\n inside apply_anisotropic, (mm,nn, inter_dim) = (%d,%d,%d)", mm,nn,inter_dim);
+      printf("\n b_blocks(1,2) = (%d,%d), Stride = %d", n_blocks1, n_blocks2,stride);
+  #endif
 
-            // increment: in regular case, just go to the next point in
-            // x-direction. If we are at the end of one chunk in x-dir, need
-            // to jump over to the next layer in z-direction
-            switch (direction)
-              {
-              case 0:
-                in += mm;
-                out += nn;
-                break;
-              case 1:
-              case 2:
-                ++in;
-                ++out;
-                break;
-              default:
-                Assert (false, ExcNotImplemented());
-              }
-          }
-        if (direction == 1)
-          {
-            in += nn*(mm-1);
-            out += nn*(nn-1);
-          }
-      }
-  }
+      for (int i2=0; i2<n_blocks2; ++i2)
+        {
+          for (int i1=0; i1<n_blocks1; ++i1)
+            {
+              for (int col=0; col<nn; ++col)
+                {
+                  Number val0;
+                  if (dof_to_quad == true)
+                    val0 = shape_data[col];
+                  else
+                    val0 = shape_data[col*n_q_points_1d];
+                  Number res0 = val0 * in[0];
+  #ifdef __UT__
+                  printf("\n val0 = %f in[0] = %f res0 = %f", val0[0],in[0][0], res0[0]);
+  #endif
+                  for (int ind=1; ind<mm; ++ind)
+                    {
+                      if (dof_to_quad == true)
+                        val0 = shape_data[ind*n_q_points_1d+col];
+                      else
+                        val0 = shape_data[col*n_q_points_1d+ind];
+                      res0 += val0 * in[stride*ind];
+  #ifdef __UT__
+                      printf("\n val0 = %f, Reading from index = %d a value in[index] = %f and calculating res0 = %f",val0[0],stride*ind,in[stride*ind][0],res0[0]);
+  #endif
+                    }
+                  if (add == false)
+                    out[stride*col]  = res0;
+                  else
+                    out[stride*col] += res0;
+  #ifdef __UT__
+                  printf("\n Storing res0 = %f at index = %d", res0[0],(stride*col));
+  #endif
+                }
+
+              // increment: in regular case, just go to the next point in
+              // x-direction. If we are at the end of one chunk in x-dir, need
+              // to jump over to the next layer in z-direction
+              switch (direction)
+                {
+                case 0:
+                  in += mm;
+                  out += nn;
+                  break;
+                case 1:
+                case 2:
+                  ++in;
+                  ++out;
+                  break;
+                default:
+                  Assert (false, ExcNotImplemented());
+                }
+            }
+          if (direction == 1) //FIXME for dim=3
+            {
+              in += nn*(mm-1);
+              out += nn*(nn-1);
+            }
+        }
+    }
 
 
 } // end of namespace internal
