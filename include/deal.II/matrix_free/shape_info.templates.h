@@ -83,7 +83,7 @@ namespace internal
     	base_shape_gradients.resize(2);
     	base_shape_hessians.resize(2);
 
-    	if (use_non_primitive)
+    	if (use_non_primitive && (fe_in.n_components() == dim))
     		internal_reinit_vector(quad,fe_in,base_element_number);
     	else
     		internal_reinit_scalar(quad,fe_in,base_element_number);
