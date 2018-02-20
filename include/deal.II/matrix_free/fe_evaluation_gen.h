@@ -16,16 +16,6 @@
 DEAL_II_NAMESPACE_OPEN
 
 
-	//TODO:
-	//I would like to have traits for something like FESystem<dim>, but that seems bit difficult
-	//Right now focus on RT
-
-
-
-	class FE_TaylorHood{
-	}; //empty class, only for getting the typename
-
-
 	///////some traits
 	template <typename T, int dim>
 	struct get_n_comp
@@ -34,8 +24,6 @@ DEAL_II_NAMESPACE_OPEN
 	};
 
 
-	//TODO: Currently these specializations provide info only for velocity components
-	//Extending their use to also pressure component is TBD
 	template <int dim>
 	struct get_n_comp<FE_RaviartThomas<dim>,dim>
 	{
@@ -43,7 +31,7 @@ DEAL_II_NAMESPACE_OPEN
 	};
 
 	template <int dim>
-	struct get_n_comp<FE_TaylorHood,dim>
+	struct get_n_comp<FE_Q<dim>,dim>
 	{
 		static constexpr int n_components = dim;
 	};
@@ -62,8 +50,6 @@ DEAL_II_NAMESPACE_OPEN
 	};
 
 
-	//TODO: Currently these specializations provide info only for velocity components
-	//Extending their use to also pressure component is TBD
 	template <int dim, int dir, int base_fe_degree, int c>
 	struct get_FEData<FE_RaviartThomas<dim>, dim, dir, base_fe_degree, c>
 	{
@@ -77,7 +63,7 @@ DEAL_II_NAMESPACE_OPEN
 
 	//Qk,Q(k-1) element = FE_TaylorHood
 	template <int dim, int dir, int base_fe_degree, int c>
-	struct get_FEData<FE_TaylorHood, dim, dir, base_fe_degree, c>
+	struct get_FEData<FE_Q<dim>, dim, dir, base_fe_degree, c>
 	{
 		static constexpr int max_fe_degree = base_fe_degree;
 		static constexpr bool isIsotropic = true;

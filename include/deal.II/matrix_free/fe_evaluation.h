@@ -5696,6 +5696,11 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
   dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
   n_q_points (this->data->n_q_points)
 {
+    static_assert(n_components == dim,
+                  "The given FEType is not supported by MF framework!"
+    			  "The number of components!= dim. "
+    			  "This record was checked from fe_evaluation_gen.h");
+
 	std::string message = "-------------------------------------------------------\n";
 	    message += "Mismatch in Finite Element as given in MatrixFree and FEEvaluation!\n";
 	    message += "DOFs per cell from MatrixFree object = ";
