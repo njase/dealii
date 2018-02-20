@@ -870,6 +870,9 @@ public:
   void release_scratch_data(const AlignedVector<VectorizedArray<Number> > *memory) const;
 
   bool is_primitive() const {return !use_non_primitive;};
+
+  MappingType get_mapping_type(const unsigned int fe_component) const;
+
   //@}
 
 private:
@@ -916,6 +919,7 @@ private:
    */
   void initialize_dof_handlers (const std::vector<const hp::DoFHandler<dim>*> &dof_handlers,
                                 const unsigned int                             level);
+
 
   /**
    * This struct defines which DoFHandler has actually been given at
@@ -1555,6 +1559,18 @@ MatrixFree<dim,Number>::release_scratch_data(const AlignedVector<VectorizedArray
   AssertThrow(false, ExcMessage("Tried to release invalid scratch pad"));
 }
 
+template <int dim, typename Number>
+inline
+MappingType
+MatrixFree<dim,Number>::get_mapping_type(const unsigned int fe_component) const
+{
+	const FiniteElement<dim> *fe = &get_dof_handler(fe_component).get_fe();
+
+	if (dynamic_cast<const FE_RaviartThomas<dim> *>(fe))
+		return mapping_piola;
+	else
+		return mapping_covariant;
+}
 
 
 // ------------------------------ reinit functions ---------------------------

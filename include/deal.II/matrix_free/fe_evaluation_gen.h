@@ -11,6 +11,7 @@
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/fe/fe.h>
+#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_raviart_thomas.h>
 
 DEAL_II_NAMESPACE_OPEN

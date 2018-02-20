@@ -950,6 +950,9 @@ protected:
   const bool use_non_primitive;
 
 private:
+
+  const MappingType mapping_type;
+
   /**
    * Sets the pointers for values, gradients, hessians to the central
    * scratch_data_array.
@@ -2288,7 +2291,8 @@ FEEvaluationBase<dim,n_components_,Number>
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
   first_selected_component  (0),
-  use_non_primitive(use_non_primitive)
+  use_non_primitive(use_non_primitive),
+  mapping_type(data_in.get_mapping_type(fe_no_in))
 {
   set_data_pointers();
   Assert (matrix_info->mapping_initialized() == true,
@@ -3941,7 +3945,7 @@ FEEvaluationBase<dim,n_components_,Number>
   // Cartesian cell
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-	  if (use_non_primitive)
+	  if (use_non_primitive && (mapping_type == mapping_piola))
 	  {
 		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
 		  //Evaluate Piola transform gradient to the same extent as dealii
@@ -4333,7 +4337,7 @@ FEEvaluationBase<dim,n_components_,Number>
 #endif
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-	  if (use_non_primitive)
+	  if (use_non_primitive && (mapping_type == mapping_piola))
 	  {
 		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
 		  //Evaluate Piola transform gradient to the same extent as dealii
@@ -5700,6 +5704,8 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
                   "The given FEType is not supported by MF framework!"
     			  "The number of components!= dim. "
     			  "This record was checked from fe_evaluation_gen.h");
+
+    //TODO check that FEType matches FE in data_in
 
 	std::string message = "-------------------------------------------------------\n";
 	    message += "Mismatch in Finite Element as given in MatrixFree and FEEvaluation!\n";
