@@ -304,14 +304,14 @@ namespace internal
                 Utilities::invert_permutation(scalar_lexicographic);
               std::vector<unsigned int> lexicographic(fe_in.dofs_per_cell,
                                                       numbers::invalid_unsigned_int);
+              const unsigned int mul = fe_in.element_multiplicity(base_element_number);
               unsigned int components_before = 0;
               for (unsigned int e=0; e<base_element_number; ++e)
                 components_before += fe_in.element_multiplicity(e);
-              for (unsigned int comp=0;
-                   comp<fe_in.element_multiplicity(base_element_number); ++comp)
+              for (unsigned int comp=0;comp<mul; ++comp)
                 for (unsigned int i=0; i<scalar_inv.size(); ++i)
-                  lexicographic[fe_in.component_to_system_index(comp+components_before,i)]
-                    = scalar_inv.size () * comp + scalar_inv[i];
+                	lexicographic[i*mul+comp+components_before]
+                    = scalar_inv.size () * comp + scalar_inv[i];  //TBD: Bug yet to be reported in dealii
 
               // invert numbering again. Need to do it manually because we might
               // have undefined blocks
