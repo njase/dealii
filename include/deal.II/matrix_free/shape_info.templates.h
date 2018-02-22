@@ -59,6 +59,7 @@ namespace internal
     ShapeInfo<Number>::ShapeInfo ()
       :
       element_type(tensor_general),
+      use_non_primitive(false),
       fe_degree(numbers::invalid_unsigned_int),
       n_q_points_1d(0),
       n_q_points (0),
@@ -75,13 +76,18 @@ namespace internal
     void
     ShapeInfo<Number>::reinit (const Quadrature<1> &quad,
                                const FiniteElement<dim> &fe_in,
-                               const unsigned int base_element_number,
-                               const bool use_non_primitive)
+                               const unsigned int base_element_number
+                               )
     {
     	//Due to structure of FE which we use (RT and FE_Q), we want to store data for max two dimensions only
     	base_shape_values.resize(2);
     	base_shape_gradients.resize(2);
     	base_shape_hessians.resize(2);
+
+    	if (dynamic_cast<const FE_RaviartThomas<dim> *>(&fe_in))
+    		use_non_primitive = true;
+    	else if (fe_in.n_components() == dim)
+    		use_non_primitive = true; //This is only for R&D and experimentation
 
     	if (use_non_primitive && (fe_in.n_components() == dim))
     		internal_reinit_vector(quad,fe_in,base_element_number);

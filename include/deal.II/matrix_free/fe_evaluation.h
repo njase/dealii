@@ -619,8 +619,7 @@ protected:
                     const unsigned int            fe_no,
                     const unsigned int            quad_no,
                     const unsigned int            fe_degree,
-                    const unsigned int            n_q_points,
-                    const bool use_non_primitive);
+                    const unsigned int            n_q_points);
 
   /**
    * Constructor that comes with reduced functionality and works similar as
@@ -947,11 +946,11 @@ protected:
    */
   mutable std::vector<types::global_dof_index> local_dof_indices;
 
-  const bool use_non_primitive;
+  bool is_non_primitive;
 
 private:
 
-  const MappingType mapping_type;
+  const unsigned int mapping_type;
 
   /**
    * Sets the pointers for values, gradients, hessians to the central
@@ -998,8 +997,7 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            fe_degree,
-                      const unsigned int            n_q_points,
-                      const bool use_non_primitive = false);
+                      const unsigned int            n_q_points);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1101,8 +1099,7 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            fe_degree,
-                      const unsigned int            n_q_points,
-                      const bool use_non_primitive = false);
+                      const unsigned int            n_q_points);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1241,8 +1238,7 @@ protected:
                       const unsigned int            fe_no,
                       const unsigned int            quad_no,
                       const unsigned int            dofs_per_cell,
-                      const unsigned int            n_q_points,
-                      const bool use_non_primitive = false);
+                      const unsigned int            n_q_points);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -1343,8 +1339,7 @@ protected:
                       const unsigned int          fe_no,
                       const unsigned int          quad_no,
                       const unsigned int          fe_degree,
-                      const unsigned int          n_q_points,
-                      const bool use_non_primitive = false);
+                      const unsigned int          n_q_points);
 
   /**
    * Constructor with reduced functionality for similar usage of FEEvaluation
@@ -2251,8 +2246,7 @@ FEEvaluationBase<dim,n_components_,Number>
                     const unsigned int fe_no_in,
                     const unsigned int quad_no_in,
                     const unsigned int fe_degree,
-                    const unsigned int n_q_points,
-                    const bool use_non_primitive)
+                    const unsigned int n_q_points)
   :
   scratch_data_array (data_in.acquire_scratch_data()),
   quad_no            (quad_no_in),
@@ -2291,9 +2285,11 @@ FEEvaluationBase<dim,n_components_,Number>
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
   first_selected_component  (0),
-  use_non_primitive(use_non_primitive),
+  is_non_primitive(false),
   mapping_type(data_in.get_mapping_type(fe_no_in))
 {
+  is_non_primitive = data->is_non_primitive();
+
   set_data_pointers();
   Assert (matrix_info->mapping_initialized() == true,
           ExcNotInitialized());
@@ -2356,8 +2352,7 @@ FEEvaluationBase<dim,n_components_,Number>
   gradients_quad_submitted  (false),
   // keep the number of the selected component within the current base element
   // for reading dof values
-  first_selected_component  (fe.component_to_base_index(first_selected_component).second),
-  use_non_primitive(false)
+  first_selected_component  (fe.component_to_base_index(first_selected_component).second)
 {
   const unsigned int base_element_number =
     fe.component_to_base_index(first_selected_component).first;
@@ -2422,8 +2417,7 @@ FEEvaluationBase<dim,n_components_,Number>
   hessians_quad_initialized (false),
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
-  first_selected_component  (other.first_selected_component),
-  use_non_primitive(other.use_non_primitive)
+  first_selected_component  (other.first_selected_component)
 {
   set_data_pointers();
 
@@ -2470,7 +2464,7 @@ FEEvaluationBase<dim,n_components_,Number>
   matrix_info = other.matrix_info;
   dof_info = other.dof_info;
   mapping_info = other.mapping_info;
-  use_non_primitive = other.use_non_primitive;
+  is_non_primitive = other.is_non_primitive;
   if (other.matrix_info == nullptr)
     {
 	  data = new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data);
@@ -3909,7 +3903,8 @@ FEEvaluationBase<dim,n_components_,Number>
           internal::ExcAccessToUninitializedField());
   AssertIndexRange (q_point, this->data->n_q_points);
   Tensor<1,n_components_,VectorizedArray<Number> > return_value;
-  if (use_non_primitive)
+
+  if (is_non_primitive && ((mapping_type & mapping_piola) == mapping_piola) )
   {
   	Assert (this->cell_type == internal::MatrixFreeFunctions::cartesian==true,
 	          ExcNotImplemented());
@@ -3945,7 +3940,8 @@ FEEvaluationBase<dim,n_components_,Number>
   // Cartesian cell
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-	  if (use_non_primitive && (mapping_type == mapping_piola))
+	  if (is_non_primitive &&
+			  ((mapping_type & mapping_piola_gradient) == mapping_piola_gradient) )
 	  {
 		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
 		  //Evaluate Piola transform gradient to the same extent as dealii
@@ -3972,7 +3968,7 @@ FEEvaluationBase<dim,n_components_,Number>
   // cell with general/affine Jacobian
   else
     {
-	  Assert (!use_non_primitive==true, ExcNotImplemented());
+	  Assert (!is_non_primitive==true, ExcNotImplemented());
 
       const Tensor<2,dim,VectorizedArray<Number> > &jac =
         this->cell_type == internal::MatrixFreeFunctions::general ?
@@ -4337,7 +4333,8 @@ FEEvaluationBase<dim,n_components_,Number>
 #endif
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-	  if (use_non_primitive && (mapping_type == mapping_piola))
+	  if (is_non_primitive &&
+			  ((mapping_type & mapping_piola_gradient) == mapping_piola_gradient) )
 	  {
 		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
 		  //Evaluate Piola transform gradient to the same extent as dealii
@@ -4418,11 +4415,10 @@ FEEvaluationAccess<dim,n_components_,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points,
-                      const bool use_non_primitive)
+                      const unsigned int n_q_points)
   :
   FEEvaluationBase <dim,n_components_,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
 {}
 
 
@@ -4476,11 +4472,10 @@ FEEvaluationAccess<dim,1,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points,
-                      const bool use_non_primitive)
+                      const unsigned int n_q_points)
   :
   FEEvaluationBase <dim,1,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
 {}
 
 
@@ -4728,11 +4723,10 @@ FEEvaluationAccess<dim,dim,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points,
-                      const bool use_non_primitive)
+                      const unsigned int n_q_points)
   :
   FEEvaluationBase <dim,dim,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points,use_non_primitive)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
 {}
 
 
@@ -5101,11 +5095,10 @@ FEEvaluationAccess<1,1,Number>
                       const unsigned int fe_no,
                       const unsigned int quad_no_in,
                       const unsigned int fe_degree,
-                      const unsigned int n_q_points,
-                      const bool use_non_primitive)
+                      const unsigned int n_q_points)
   :
   FEEvaluationBase <1,1,Number>
-  (data_in, fe_no, quad_no_in, fe_degree, n_q_points, use_non_primitive)
+  (data_in, fe_no, quad_no_in, fe_degree, n_q_points)
 {}
 
 
@@ -5694,8 +5687,7 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
   :
    BaseClass (data_in, fe_no, quad_no,
    		  	  numbers::invalid_unsigned_int, //required only for hp FE
-   		  	numbers::invalid_unsigned_int, //required only for hp FE
-   		  	true), //use non-primitive
+   		  	numbers::invalid_unsigned_int), //required only for hp FE
   dofs_per_component (this->data->dofs_per_component_on_cell),
   dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
   n_q_points (this->data->n_q_points)

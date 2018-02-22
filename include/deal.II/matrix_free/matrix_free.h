@@ -285,7 +285,7 @@ public:
   /**
    * Default constructor.
    */
-  MatrixFree (bool use_non_primitive=false);
+  MatrixFree ();
 
   /**
    * Copy constructor, calls copy_from
@@ -869,9 +869,7 @@ public:
    */
   void release_scratch_data(const AlignedVector<VectorizedArray<Number> > *memory) const;
 
-  bool is_primitive() const {return !use_non_primitive;};
-
-  MappingType get_mapping_type(const unsigned int fe_component) const;
+  unsigned int get_mapping_type(const unsigned int fe_component) const;
 
   //@}
 
@@ -1025,11 +1023,6 @@ private:
    * objects.
    */
   mutable Threads::ThreadLocalStorage<std::list<std::pair<bool, AlignedVector<VectorizedArray<Number> > > > > scratch_pad;
-
-  /*
-   * To indicate preference for using non-primitive FE. Provided during constructor. Default = false
-   */
-  bool use_non_primitive;
 };
 
 
@@ -1561,17 +1554,16 @@ MatrixFree<dim,Number>::release_scratch_data(const AlignedVector<VectorizedArray
 
 template <int dim, typename Number>
 inline
-MappingType
+unsigned int
 MatrixFree<dim,Number>::get_mapping_type(const unsigned int fe_component) const
 {
 	const FiniteElement<dim> *fe = &get_dof_handler(fe_component).get_fe();
 
 	if (dynamic_cast<const FE_RaviartThomas<dim> *>(fe))
-		return mapping_piola;
+		return mapping_piola | mapping_piola_gradient ;
 	else
-		return mapping_covariant;
+		return mapping_covariant | mapping_covariant_gradient ;
 }
-
 
 // ------------------------------ reinit functions ---------------------------
 

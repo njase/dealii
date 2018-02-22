@@ -101,8 +101,8 @@ namespace internal
       template <int dim>
       ShapeInfo (const Quadrature<1> &quad,
                  const FiniteElement<dim> &fe,
-                 const unsigned int base_element = 0,
-                 const bool use_non_primitive=false);
+                 const unsigned int base_element = 0
+                 );
 
       /**
        * Initializes the data fields. Takes a one-dimensional quadrature
@@ -115,8 +115,7 @@ namespace internal
       template <int dim>
       void reinit (const Quadrature<1> &quad,
                    const FiniteElement<dim> &fe_dim,
-                   const unsigned int base_element = 0,
-                   const bool use_non_primitive=false);
+                   const unsigned int base_element = 0);
 
       /**
        * Return the memory consumption of this class in bytes.
@@ -155,6 +154,11 @@ namespace internal
        * type.
        */
       ElementType element_type;
+
+      /*
+       * To indicate preference for using non-primitive FE. Default = false
+       */
+      bool use_non_primitive;
 
       //Vector of components. Vector size = no of components
       //These are now used as component wise shape_values
@@ -392,6 +396,9 @@ namespace internal
        * that save some operations in the evaluation.
        */
       bool check_1d_shapes_collocation();
+
+
+      bool is_non_primitive() const {return use_non_primitive;};
     };
 
     // ------------------------------------------ inline functions
@@ -401,8 +408,7 @@ namespace internal
     inline
     ShapeInfo<Number>::ShapeInfo (const Quadrature<1> &quad,
                                   const FiniteElement<dim> &fe_in,
-                                  const unsigned int base_element_number,
-                                  bool use_non_primitive)
+                                  const unsigned int base_element_number)
       :
       element_type(tensor_general),
       fe_degree(0),
@@ -413,7 +419,7 @@ namespace internal
       dofs_per_component_on_face (0),
       nodal_at_cell_boundaries (false)
     {
-      reinit (quad, fe_in, base_element_number,use_non_primitive);
+      reinit (quad, fe_in, base_element_number);
     }
   } // end of namespace MatrixFreeFunctions
 
