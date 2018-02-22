@@ -143,12 +143,12 @@ namespace internal
       EvaluatorSelector<type,(fe_degree+n_q_points_1d>4)>::variant;
     typedef EvaluatorTensorProduct<variant, dim, fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
-    Eval eval (variant == evaluate_evenodd ? shape_info.shape_values_eo.begin() :
-               shape_info.shape_values.begin(),
-               variant == evaluate_evenodd ? shape_info.shape_gradients_eo.begin() :
-               shape_info.shape_gradients.begin(),
-               variant == evaluate_evenodd ? shape_info.shape_hessians_eo.begin() :
-               shape_info.shape_hessians.begin(),
+    Eval eval (variant == evaluate_evenodd ? shape_info.shape_values_eo :
+               shape_info.shape_values,
+               variant == evaluate_evenodd ? shape_info.shape_gradients_eo :
+               shape_info.shape_gradients,
+               variant == evaluate_evenodd ? shape_info.shape_hessians_eo :
+               shape_info.shape_hessians,
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
@@ -356,12 +356,12 @@ namespace internal
       EvaluatorSelector<type,(fe_degree+n_q_points_1d>4)>::variant;
     typedef EvaluatorTensorProduct<variant, dim, fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
-    Eval eval (variant == evaluate_evenodd ? shape_info.shape_values_eo.begin() :
-               shape_info.shape_values.begin(),
-               variant == evaluate_evenodd ? shape_info.shape_gradients_eo.begin() :
-               shape_info.shape_gradients.begin(),
-               variant == evaluate_evenodd ? shape_info.shape_hessians_eo.begin() :
-               shape_info.shape_hessians.begin(),
+    Eval eval (variant == evaluate_evenodd ? shape_info.shape_values_eo :
+               shape_info.shape_values,
+               variant == evaluate_evenodd ? shape_info.shape_gradients_eo :
+               shape_info.shape_gradients,
+               variant == evaluate_evenodd ? shape_info.shape_hessians_eo :
+               shape_info.shape_hessians,
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
@@ -576,15 +576,14 @@ namespace internal
   {
     typedef EvaluatorTensorProduct<evaluate_evenodd, dim, fe_degree, fe_degree+1,
             VectorizedArray<Number> > Eval;
-    const AlignedVector<VectorizedArray<Number> > empty;
-    Eval eval_val (shape_info.shape_values_eo.begin(),
-    			   empty.begin(),
-    			   empty.begin(),
+    Eval eval_val (shape_info.shape_values_eo,
+    			   AlignedVector<VectorizedArray<Number> >(),
+    			   AlignedVector<VectorizedArray<Number> >(),
                    shape_info.fe_degree,
                    shape_info.n_q_points_1d);
-    Eval eval(empty.begin(),
-              shape_info.shape_gradients_collocation_eo.begin(),
-              shape_info.shape_hessians_collocation_eo.begin(),
+    Eval eval(AlignedVector<VectorizedArray<Number> >(),
+              shape_info.shape_gradients_collocation_eo,
+              shape_info.shape_hessians_collocation_eo,
               shape_info.fe_degree,
               shape_info.n_q_points_1d);
 
@@ -659,15 +658,14 @@ namespace internal
   {
     typedef EvaluatorTensorProduct<evaluate_evenodd, dim, fe_degree, fe_degree+1,
             VectorizedArray<Number> > Eval;
-    const AlignedVector<VectorizedArray<Number> > empty;
-    Eval eval_val (shape_info.shape_values_eo.begin(),
-    			   empty.begin(),
-    			   empty.begin(),
+    Eval eval_val (shape_info.shape_values_eo,
+    			   AlignedVector<VectorizedArray<Number> >(),
+    			   AlignedVector<VectorizedArray<Number> >(),
                    shape_info.fe_degree,
                    shape_info.n_q_points_1d);
-    Eval eval(empty.begin(),
-              shape_info.shape_gradients_collocation_eo.begin(),
-              shape_info.shape_hessians_collocation_eo.begin(),
+    Eval eval(AlignedVector<VectorizedArray<Number> >(),
+              shape_info.shape_gradients_collocation_eo,
+              shape_info.shape_hessians_collocation_eo,
               shape_info.fe_degree,
               shape_info.n_q_points_1d);
 
@@ -765,10 +763,9 @@ namespace internal
   {
     typedef EvaluatorTensorProduct<evaluate_evenodd, dim, fe_degree, fe_degree+1,
             VectorizedArray<Number> > Eval;
-    const AlignedVector<VectorizedArray<Number> > empty;
-    Eval eval(empty.begin(),
-              shape_info.shape_gradients_eo.begin(),
-              shape_info.shape_hessians_eo.begin(),
+    Eval eval(AlignedVector<VectorizedArray<Number> >(),
+              shape_info.shape_gradients_eo,
+              shape_info.shape_hessians_eo,
               shape_info.fe_degree,
               shape_info.n_q_points_1d);
 
@@ -828,10 +825,9 @@ namespace internal
   {
     typedef EvaluatorTensorProduct<evaluate_evenodd, dim, fe_degree, fe_degree+1,
             VectorizedArray<Number> > Eval;
-    const AlignedVector<VectorizedArray<Number> > empty;
-    Eval eval(empty.begin(),
-              shape_info.shape_gradients_eo.begin(),
-              shape_info.shape_hessians_eo.begin(),
+    Eval eval(AlignedVector<VectorizedArray<Number> >(),
+              shape_info.shape_gradients_eo,
+              shape_info.shape_hessians_eo,
               shape_info.fe_degree,
               shape_info.n_q_points_1d);
 
@@ -929,9 +925,9 @@ namespace internal
     typedef EvaluatorTensorProduct<variant, dim, base_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
-    Eval eval (empty.begin(),
-    		   empty.begin(),
-               empty.begin(),
+	Eval eval(AlignedVector<VectorizedArray<Number> >(),
+			   AlignedVector<VectorizedArray<Number> >(),
+			   AlignedVector<VectorizedArray<Number> >(),
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
@@ -1128,11 +1124,11 @@ namespace internal
     typedef EvaluatorTensorProduct<variant, dim, max_fe_degree, n_q_points_1d,
             VectorizedArray<Number> > Eval;
 
-    Eval eval (empty.begin(),
-    		   	  empty.begin(),
-			   	  empty.begin(),
-                  shape_info.fe_degree,
-                  shape_info.n_q_points_1d);
+	Eval eval(AlignedVector<VectorizedArray<Number> >(),
+			   AlignedVector<VectorizedArray<Number> >(),
+			   AlignedVector<VectorizedArray<Number> >(),
+               shape_info.fe_degree,
+               shape_info.n_q_points_1d);
 
     for (unsigned int c_old=0; c_old<n_components; c_old++)
     {

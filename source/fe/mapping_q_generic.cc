@@ -1033,7 +1033,7 @@ namespace internal
         tensor_product_matrix.reinit(mass_1d, lapl_1d);
 
         internal::EvaluatorTensorProduct<internal::evaluate_general,dim,-1,0,double>
-        eval_rhs(value_1d.begin(), derivative_1d.begin(), value_1d.begin(),
+        eval_rhs(value_1d, derivative_1d, value_1d,
                  polynomial_degree-2, polynomial_degree+1);
 
         std::vector<double> tmp_rhs(dim*n_q_points), rl1(n_q_points),

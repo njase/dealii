@@ -85,16 +85,15 @@ namespace internal
     /**
      * Constructor, taking the data from ShapeInfo
      */
-    template <typename ShapeIterator>
-    EvaluatorTensorProduct (const ShapeIterator &shape_values,
-    						const ShapeIterator &shape_gradients,
-    						const ShapeIterator &shape_hessians,
+    EvaluatorTensorProduct (const AlignedVector<Number> &shape_values,
+    						const AlignedVector<Number> &shape_gradients,
+    						const AlignedVector<Number> &shape_hessians,
                             const unsigned int           dummy1 = 0,
                             const unsigned int           dummy2 = 0)
     :
-    shape_values (shape_values),
-    shape_gradients (shape_gradients),
-    shape_hessians (shape_hessians)
+    shape_values (shape_values.begin()),
+    shape_gradients (shape_gradients.begin()),
+    shape_hessians (shape_hessians.begin())
     {
       (void)dummy1;
       (void)dummy2;
@@ -327,16 +326,15 @@ namespace internal
     /**
      * Constructor, taking the data from ShapeInfo
      */
-    template <typename ShapeIterator>
-    EvaluatorTensorProduct (const ShapeIterator &shape_values,
-                            const ShapeIterator &shape_gradients,
-                            const ShapeIterator &shape_hessians,
+    EvaluatorTensorProduct (const AlignedVector<Number> &shape_values,
+                            const AlignedVector<Number> &shape_gradients,
+                            const AlignedVector<Number> &shape_hessians,
                             const unsigned int           fe_degree,
                             const unsigned int           n_q_points_1d)
       :
-      shape_values (shape_values), //.begin()),
-      shape_gradients (shape_gradients), //.begin()),
-      shape_hessians (shape_hessians), //.begin()),
+      shape_values (shape_values.begin()),
+      shape_gradients (shape_gradients.begin()),
+      shape_hessians (shape_hessians.begin()),
       fe_degree (fe_degree),
       n_q_points_1d (n_q_points_1d)
     {}
@@ -468,16 +466,15 @@ namespace internal
     /**
      * Constructor, taking the data from ShapeInfo
      */
-    template<typename ShapeIterator>
-    EvaluatorTensorProduct (const ShapeIterator &shape_values,
-                            const ShapeIterator &shape_gradients,
-                            const ShapeIterator &shape_hessians,
+    EvaluatorTensorProduct (const AlignedVector<Number> &shape_values,
+                            const AlignedVector<Number> &shape_gradients,
+                            const AlignedVector<Number> &shape_hessians,
                             const unsigned int           dummy1 = 0,
                             const unsigned int           dummy2 = 0)
       :
-      shape_values (shape_values), //.begin()),
-      shape_gradients (shape_gradients), //.begin()),
-      shape_hessians (shape_hessians)//.begin())
+      shape_values (shape_values.begin()),
+      shape_gradients (shape_gradients.begin()),
+      shape_hessians (shape_hessians.begin())
     {
       (void)dummy1;
       (void)dummy2;
@@ -1057,16 +1054,15 @@ namespace internal
      * Constructor, taking the data from ShapeInfo (using the even-odd
      * variants stored there)
      */
-    template<typename ShapeIterator>
-    EvaluatorTensorProduct (const ShapeIterator &shape_values,
-                            const ShapeIterator &shape_gradients,
-                            const ShapeIterator &shape_hessians,
+    EvaluatorTensorProduct (const AlignedVector<Number> &shape_values,
+                            const AlignedVector<Number> &shape_gradients,
+                            const AlignedVector<Number> &shape_hessians,
                             const unsigned int           dummy1 = 0,
                             const unsigned int           dummy2 = 0)
       :
-      shape_values (shape_values), //.begin()),
-      shape_gradients (shape_gradients), //.begin()),
-      shape_hessians (shape_hessians)//.begin())
+      shape_values (shape_values.begin()),
+      shape_gradients (shape_gradients.begin()),
+      shape_hessians (shape_hessians.begin())
     {
       (void)dummy1;
       (void)dummy2;

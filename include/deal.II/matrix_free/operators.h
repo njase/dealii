@@ -894,7 +894,7 @@ namespace MatrixFreeOperators
 
     internal::EvaluatorTensorProduct<internal::evaluate_evenodd,dim,fe_degree,
              fe_degree+1, VectorizedArray<Number> >
-             evaluator(inverse_shape.begin(), inverse_shape.begin(), inverse_shape.begin());
+             evaluator(inverse_shape, inverse_shape, inverse_shape);
 
     const unsigned int shift_coefficient =
       inverse_coefficients.size() > dofs_per_cell ? dofs_per_cell : 0;

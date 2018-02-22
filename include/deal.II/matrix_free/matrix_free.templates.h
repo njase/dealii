@@ -93,7 +93,7 @@ internal_reinit(const Mapping<dim>                          &mapping,
       for (unsigned int nq =0; nq<n_quad; nq++)
         {
           AssertDimension (quad[nq].size(), 1);
-          shape_info(no,nq,0,0).reinit(quad[nq][0], dof_handler[no]->get_fe(),0);
+          shape_info(no,nq,0,0).reinit(quad[nq][0], dof_handler[no]->get_fe());
         }
   }
 
@@ -229,7 +229,7 @@ internal_reinit(const Mapping<dim>                            &mapping,
           for (unsigned int q_no=0; q_no<quad[nq].size(); ++q_no)
           {
             shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
-                                                 dof_handler[no]->get_fe(fe_no),0);
+                                                 dof_handler[no]->get_fe(fe_no));
           }
   }
 
