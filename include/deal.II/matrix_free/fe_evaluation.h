@@ -4310,9 +4310,22 @@ FEEvaluationBase<dim,n_components_,Number>
     }
   else //if (this->cell_type < internal::MatrixFreeFunctions::general)
     {
-      const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
-      for (unsigned int comp=0; comp<n_components; ++comp)
-        this->values_quad[comp][q_point] = val_in[comp] * JxW;
+	  if (is_non_primitive && ((mapping_type & mapping_piola) == mapping_piola) )
+	    {
+	    	Assert (this->cell_type == internal::MatrixFreeFunctions::cartesian==true,
+	  	          ExcNotImplemented());
+
+			for (unsigned int comp=0; comp<n_components; ++comp)
+			  this->values_quad[comp][q_point] =
+					  (val_in[comp]* quadrature_weights[q_point])/cartesian_data[0][comp];
+						// *(J_value[0]/J_value[0]) = 1
+	    }
+	  else
+	  {
+		  const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
+		  for (unsigned int comp=0; comp<n_components; ++comp)
+			  this->values_quad[comp][q_point] = val_in[comp] * JxW;
+	  }
     }
 }
 
