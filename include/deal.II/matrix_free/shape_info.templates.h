@@ -382,9 +382,11 @@ namespace internal
     	//       shows tensor product structure
     	std::vector<unsigned int> temp(lexicographic_numbering);
     	const int int_values_per_iter = fe->degree-1;
-    	const int face_values_per_iter = ((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
-    															(nfp_per_comp/nip_per_comp) :
-    															int_values_per_iter;
+    	const int face_values_per_iter = nip_per_comp > 0
+    									?
+    										(((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
+    											(nfp_per_comp/nip_per_comp) : int_values_per_iter)
+    									 : 0;
 
     	for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
     	{
