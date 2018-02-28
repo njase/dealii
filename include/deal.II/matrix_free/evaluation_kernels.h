@@ -1200,7 +1200,7 @@ namespace internal
                 	apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
                   }
                 else
-                  apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2+1>(shape_info.shape_values_vec[c][1],temp1, values_dofs[c]);
+                  apply_anisotropic<dim,fe_deg_y2,n_q_points_1d,VecArr,1,false,true,fe_deg_x2+1>(shape_info.shape_gradients_vec[c][1],temp1, values_dofs[c]);
               }
           }
         break;
