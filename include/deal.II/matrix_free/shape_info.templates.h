@@ -380,24 +380,27 @@ namespace internal
 
     	//Step2: Reorder points of first component so that result has tensor product structure. second component already
     	//       shows tensor product structure
-    	std::vector<unsigned int> temp(lexicographic_numbering);
-    	const int int_values_per_iter = fe->degree-1;
-    	const int face_values_per_iter = nip_per_comp > 0
-    									?
-    										(((nfp_per_comp/nip_per_comp) > int_values_per_iter) ?
-    											(nfp_per_comp/nip_per_comp) : int_values_per_iter)
-    									 : 0;
+		if (fe->degree > 1)
+		{
+			std::vector<unsigned int> temp(lexicographic_numbering);
+			const int int_values_per_iter = fe->degree-1;
+			const int face_values_per_iter = (nfp_per_comp/nip_per_comp) > int_values_per_iter
+												?
+    											nfp_per_comp/nip_per_comp
+    											:
+    											int_values_per_iter;
 
-    	for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
-    	{
-    		current = n*(face_values_per_iter+int_values_per_iter);
-    		for (int i=0; i<face_values_per_iter; i++)
-    			lexicographic_numbering[current+i] = temp[n+i*(int_values_per_iter+1)]; //for face points
+			for (int n = 0; n<n_per_comp/(face_values_per_iter+int_values_per_iter); n++)
+			{
+				current = n*(face_values_per_iter+int_values_per_iter);
+				for (int i=0; i<face_values_per_iter; i++)
+					lexicographic_numbering[current+i] = temp[n+i*(int_values_per_iter+1)]; //for face points
 
-    		current += face_values_per_iter;
-    		for (int i=0; i<int_values_per_iter; i++)
-    			lexicographic_numbering[current+i] = temp[nfp_per_comp+n*int_values_per_iter+i]; //for internal points
-    	}
+				current += face_values_per_iter;
+				for (int i=0; i<int_values_per_iter; i++)
+					lexicographic_numbering[current+i] = temp[nfp_per_comp+n*int_values_per_iter+i]; //for internal points
+			}
+		}
 
 #ifdef __UT__
     	//Only for debugging - incorrect result for deg>2
