@@ -14,6 +14,7 @@
 // ---------------------------------------------------------------------
 
 
+#include <deal.II/base/utilities.h>
 #include <deal.II/base/polynomials_raviart_thomas.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/thread_management.h>
@@ -33,7 +34,9 @@ PolynomialsRaviartThomas<dim>::PolynomialsRaviartThomas (const unsigned int k)
   my_degree(k),
   polynomial_space (create_polynomials (k)),
   n_pols(compute_n_pols(k))
-{}
+{
+	create_poly_mapping();
+}
 
 
 
@@ -123,24 +126,25 @@ PolynomialsRaviartThomas<dim>::compute (const Point<dim>            &unit_point,
       polynomial_space.compute (p, p_values, p_grads, p_grad_grads, p_third_derivatives, p_fourth_derivatives);
 
       for (unsigned int i=0; i<p_values.size(); ++i)
-        values[i+d*n_sub][d] = p_values[i];
+        values[i+d*n_sub][d] = p_values[tensor_pols_mapping_inv[d][i]];
 
       for (unsigned int i=0; i<p_grads.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
-          grads[i+d*n_sub][d][(d1+d)%dim] = p_grads[i][d1];
+        	grads[i+d*n_sub][d][(d1+d)%dim] = p_grads[tensor_pols_mapping_inv[d][i]][d1];
+
 
       for (unsigned int i=0; i<p_grad_grads.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
           for (unsigned int d2=0; d2<dim; ++d2)
             grad_grads[i+d*n_sub][d][(d1+d)%dim][(d2+d)%dim]
-              = p_grad_grads[i][d1][d2];
+              = p_grad_grads[tensor_pols_mapping_inv[d][i]][d1][d2];
 
       for (unsigned int i=0; i<p_third_derivatives.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
           for (unsigned int d2=0; d2<dim; ++d2)
             for (unsigned int d3=0; d3<dim; ++d3)
               third_derivatives[i+d*n_sub][d][(d1+d)%dim][(d2+d)%dim][(d3+d)%dim]
-                = p_third_derivatives[i][d1][d2][d3];
+                = p_third_derivatives[tensor_pols_mapping_inv[d][i]][d1][d2][d3];
 
       for (unsigned int i=0; i<p_fourth_derivatives.size(); ++i)
         for (unsigned int d1=0; d1<dim; ++d1)
@@ -148,7 +152,7 @@ PolynomialsRaviartThomas<dim>::compute (const Point<dim>            &unit_point,
             for (unsigned int d3=0; d3<dim; ++d3)
               for (unsigned int d4=0; d4<dim; ++d4)
                 fourth_derivatives[i+d*n_sub][d][(d1+d)%dim][(d2+d)%dim][(d3+d)%dim][(d4+d)%dim]
-                  = p_fourth_derivatives[i][d1][d2][d3][d4];
+                  = p_fourth_derivatives[tensor_pols_mapping_inv[d][i]][d1][d2][d3][d4];
     }
 }
 
@@ -165,6 +169,46 @@ PolynomialsRaviartThomas<dim>::compute_n_pols(unsigned int k)
   return 0;
 }
 
+template <int dim>
+void
+PolynomialsRaviartThomas<dim>::create_poly_mapping ()
+{
+	if ((dim > 2)) //FIXME: For dim=3
+		Assert(false, ExcNotImplemented());
+
+	constexpr int n_components = dim; //For clarity
+
+	const unsigned int n_sub = polynomial_space.n();
+
+	for (int c=0;c<n_components;c++)
+		tensor_pols_mapping_inv[c].resize(n_sub);
+
+	////Fill for values
+	//For first component, mapping is 1:1
+	for (int i=0; i<n_sub; i++)
+	{
+		tensor_pols_mapping_inv[0][i] = i;
+	}
+
+	//FIXME This is only for dim=2
+	//Actual indices are locations corresponding to transposed matrix of calculated indices
+	const unsigned int ny = my_degree+2, nx=my_degree+1; //no of dofs in each direction
+	if ((nx*ny) != n_sub)
+		Assert(false, ExcInternalError());
+
+	int k=0, k_act=0;
+	//Store the indices cooresponding to matrix transpose
+	for (int i=0; i<ny; i++)
+	{
+		for (int j=0; j<nx; j++)
+		{
+			k_act = i*nx+j;
+			k = j*ny+i;
+			tensor_pols_mapping_inv[1][k_act] = k;
+		}
+	}
+
+}
 
 template class PolynomialsRaviartThomas<1>;
 template class PolynomialsRaviartThomas<2>;

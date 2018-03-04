@@ -101,6 +101,14 @@ public:
    */
   static unsigned int compute_n_pols(unsigned int degree);
 
+  /**
+   * A static member function that creates the polynomial space we use to
+   * initialize the #polynomial_space member variable.
+   */
+  static
+  std::vector<std::vector< Polynomials::Polynomial< double > > >
+  create_polynomials (const unsigned int k);
+
 private:
   /**
    * The degree of this object as given to the constructor.
@@ -118,13 +126,23 @@ private:
    */
   const unsigned int n_pols;
 
-  /**
-   * A static member function that creates the polynomial space we use to
-   * initialize the #polynomial_space member variable.
+  /*
+   * By default, the Raviart Thomas "raw" polynomials are by as
+   * the tensor product:
+   *    Q_x(k+1) \otimes Q_y(k)
+   *    Q_y(k+1) \otimes Q_x(k)
+   * This variable stores mapping from the default ordering to
+   * outer tensor product ordering
+   *    Q_x(k+1) \otimes Q_y(k)
+   *    Q_x(k) \otimes Q_y(k+1)
    */
-  static
-  std::vector<std::vector< Polynomials::Polynomial< double > > >
-  create_polynomials (const unsigned int k);
+  std::array<std::vector<unsigned int>,dim> tensor_pols_mapping_inv;
+
+  /**
+   * This function generates (inverse) mapping from tensor default tensor
+   * product ordering to outer tensor product ordering
+   */
+  void create_poly_mapping ();
 };
 
 

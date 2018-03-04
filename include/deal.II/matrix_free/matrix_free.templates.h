@@ -16,7 +16,6 @@
 #ifndef dealii_matrix_free_templates_h
 #define dealii_matrix_free_templates_h
 
-
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/memory_consumption.h>
 #include <deal.II/base/tensor_product_polynomials.h>
@@ -37,16 +36,14 @@ DEAL_II_NAMESPACE_OPEN
 
 
 // --------------------- MatrixFree -----------------------------------
-
 template <int dim, typename Number>
 MatrixFree<dim, Number>::MatrixFree()
   :
   Subscriptor(),
   indices_are_initialized (false),
   mapping_is_initialized  (false)
-{}
-
-
+{
+}
 
 template <int dim, typename Number>
 MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
@@ -55,8 +52,6 @@ MatrixFree<dim, Number>::MatrixFree(const MatrixFree<dim,Number> &other)
 {
   copy_from(other);
 }
-
-
 
 template <int dim, typename Number>
 void MatrixFree<dim,Number>::
@@ -87,13 +82,13 @@ internal_reinit(const Mapping<dim>                          &mapping,
                 const std::vector<hp::QCollection<1> >      &quad,
                 const typename MatrixFree<dim,Number>::AdditionalData additional_data)
 {
-
   // Reads out the FE information and stores the shape function values,
   // gradients and Hessians for quadrature points.
   {
     const unsigned int n_fe   = dof_handler.size();
     const unsigned int n_quad = quad.size();
     shape_info.reinit (TableIndices<4>(n_fe, n_quad, 1, 1));
+
     for (unsigned int no=0; no<n_fe; no++)
       for (unsigned int nq =0; nq<n_quad; nq++)
         {
@@ -232,8 +227,10 @@ internal_reinit(const Mapping<dim>                            &mapping,
       for (unsigned int fe_no=0; fe_no<dof_handler[no]->get_fe_collection().size(); ++fe_no)
         for (unsigned int nq =0; nq<n_quad; nq++)
           for (unsigned int q_no=0; q_no<quad[nq].size(); ++q_no)
+          {
             shape_info(no,nq,fe_no,q_no).reinit (quad[nq][q_no],
                                                  dof_handler[no]->get_fe(fe_no));
+          }
   }
 
   if (additional_data.initialize_indices == true)
@@ -544,7 +541,8 @@ void MatrixFree<dim,Number>::initialize_indices
           const FiniteElement<dim> &fe = *fes[fe_index];
           Assert (fe.n_base_elements() == 1,
                   ExcMessage ("MatrixFree currently only works for DoFHandler with one base element"));
-          const unsigned int n_fe_components = fe.element_multiplicity (0);
+
+          const unsigned int n_fe_components = fe.n_components();
 
           // cache number of finite elements and dofs_per_cell
           dof_info[no].dofs_per_cell.push_back (fe.dofs_per_cell);
@@ -783,7 +781,6 @@ void MatrixFree<dim,Number>::clear()
   indices_are_initialized = false;
   mapping_is_initialized  = false;
 }
-
 
 
 template <int dim, typename Number>

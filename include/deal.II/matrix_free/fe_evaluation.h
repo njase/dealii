@@ -31,6 +31,7 @@
 #include <deal.II/matrix_free/evaluation_kernels.h>
 #include <deal.II/matrix_free/tensor_product_kernels.h>
 #include <deal.II/matrix_free/evaluation_selector.h>
+#include <deal.II/matrix_free/fe_evaluation_gen.h>
 
 #include <deal.II/lac/vector_operation.h>
 
@@ -50,6 +51,7 @@ namespace internal
 {
   DeclException0 (ExcAccessToUninitializedField);
 }
+
 
 template <int dim, int fe_degree, int n_q_points_1d = fe_degree+1,
           int n_components_ = 1, typename Number = double > class FEEvaluation;
@@ -944,7 +946,12 @@ protected:
    */
   mutable std::vector<types::global_dof_index> local_dof_indices;
 
+  bool is_non_primitive;
+
 private:
+
+  const unsigned int mapping_type;
+
   /**
    * Sets the pointers for values, gradients, hessians to the central
    * scratch_data_array.
@@ -2062,6 +2069,68 @@ private:
 };
 
 
+ template <typename FEType, int dim, int base_fe_degree, int n_q_points_1d, typename Number >
+ class FEEvaluationAni : public FEEvaluationAccess<dim, get_n_comp<FEType,dim>::n_components,Number>
+ {
+ public:
+   using BaseClass =  FEEvaluationAccess<dim,get_n_comp<FEType,dim>::n_components,Number>;
+   static constexpr int n_components = BaseClass::n_components;
+   //typedef FEEvaluationAccess<dim,n_components_,Number> BaseClass;
+   typedef Number                            number_type;
+   typedef typename BaseClass::value_type    value_type;
+   typedef typename BaseClass::gradient_type gradient_type;
+   static constexpr unsigned int dimension     = dim;
+   static constexpr unsigned int static_dofs_per_cell =
+		   get_FEData<FEType, dim, 0 /* any dir */,
+		   	   	   base_fe_degree, n_components-1 /* any component */>::dofs_per_cell;
+   static constexpr unsigned int static_dofs_per_component = static_dofs_per_cell/n_components;
+   static constexpr unsigned int tensor_dofs_per_cell = static_dofs_per_cell/n_components;
+   static constexpr unsigned int static_n_q_points    = Utilities::fixed_int_power<n_q_points_1d,dim>::value;
+
+   /**
+    * Constructor. Takes all data stored in MatrixFree. If applied to problems
+    * with more than one finite element or more than one quadrature formula
+    * selected during construction of @p matrix_free, @p fe_no and @p quad_no
+    * allow to select the appropriate components.
+    */
+   FEEvaluationAni (const MatrixFree<dim,Number> &matrix_free,
+                 const unsigned int            fe_no   = 0,
+                 const unsigned int            quad_no = 0);
+
+   /**
+    * See @FEEvaluation.evaluate
+    */
+   void evaluate (const bool evaluate_values,
+                  const bool evaluate_gradients,
+                  const bool evaluate_hessians = false);
+
+   /**
+    * See @FEEvaluation.integrate
+    */
+   void integrate (const bool integrate_values,
+                   const bool integrate_gradients);
+
+   /**
+    * See @FEEvaluation.quadrature_point
+    */
+   Point<dim,VectorizedArray<Number> >
+   quadrature_point (const unsigned int q_point) const;
+
+   /**
+    * See @FEEvaluation.dofs_per_component
+    */
+   const unsigned int dofs_per_component;
+
+   /**
+    * See @FEEvaluation.dofs_per_cell
+    */
+   const unsigned int dofs_per_cell;
+
+   /**
+    * See @FEEvaluation.n_q_points
+    */
+   const unsigned int n_q_points;
+ };
 
 namespace internal
 {
@@ -2140,8 +2209,12 @@ FEEvaluationBase<dim,n_components_,Number>
   hessians_quad_initialized (false),
   values_quad_submitted     (false),
   gradients_quad_submitted  (false),
-  first_selected_component  (0)
+  first_selected_component  (0),
+  is_non_primitive(false),
+  mapping_type(data_in.get_mapping_type(fe_no_in))
 {
+  is_non_primitive = data->is_non_primitive();
+
   set_data_pointers();
   Assert (matrix_info->mapping_initialized() == true,
           ExcNotInitialized());
@@ -2316,9 +2389,10 @@ FEEvaluationBase<dim,n_components_,Number>
   matrix_info = other.matrix_info;
   dof_info = other.dof_info;
   mapping_info = other.mapping_info;
+  is_non_primitive = other.is_non_primitive;
   if (other.matrix_info == nullptr)
     {
-      data = new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data);
+	  data = new internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>>(*other.data);
       scratch_data_array = new AlignedVector<VectorizedArray<Number> >();
     }
   else
@@ -3354,8 +3428,12 @@ FEEvaluationBase<dim,n_components_,Number>
   // of components is checked in the internal data
   typename internal::BlockVectorSelector<VectorType,
            IsBlockVector<VectorType>::value>::BaseVectorType *src_data[n_components];
+
   for (unsigned int d=0; d<n_components; ++d)
-    src_data[d] = internal::BlockVectorSelector<VectorType, IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src), d+first_index);
+    src_data[d] = internal::BlockVectorSelector<VectorType,
+    			  IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
+    			  d+first_index);
+
 
   internal::VectorReader<Number> reader;
   read_write_operation (reader, src_data);
@@ -3724,8 +3802,23 @@ FEEvaluationBase<dim,n_components_,Number>
           internal::ExcAccessToUninitializedField());
   AssertIndexRange (q_point, this->data->n_q_points);
   Tensor<1,n_components_,VectorizedArray<Number> > return_value;
-  for (unsigned int comp=0; comp<n_components; comp++)
-    return_value[comp] = this->values_quad[comp][q_point];
+
+  if (is_non_primitive && ((mapping_type & mapping_piola) == mapping_piola) )
+  {
+  	Assert (this->cell_type == internal::MatrixFreeFunctions::cartesian==true,
+	          ExcNotImplemented());
+  	//The current functionality is limited to Raviart Thomas elements (and FE_Q)
+  	//Evaluate Piola transform
+  	//cartesian_data[0] stores inverse diagonal jacobian..so invert it again
+  	//Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
+  	for (unsigned int comp=0; comp<n_components; comp++)
+    	return_value[comp] = this->values_quad[comp][q_point]/(cartesian_data[0][comp] * J_value[0]);
+  }
+  else
+  {
+  	for (unsigned int comp=0; comp<n_components; comp++)
+    	return_value[comp] = this->values_quad[comp][q_point];
+  }
   return return_value;
 }
 
@@ -3746,14 +3839,36 @@ FEEvaluationBase<dim,n_components_,Number>
   // Cartesian cell
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-      for (unsigned int comp=0; comp<n_components; comp++)
-        for (unsigned int d=0; d<dim; ++d)
-          grad_out[comp][d] = (this->gradients_quad[comp][d][q_point] *
+	  if (is_non_primitive &&
+			  ((mapping_type & mapping_piola_gradient) == mapping_piola_gradient) )
+	  {
+		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
+		  //Evaluate Piola transform gradient to the same extent as dealii
+		  // See mapping_piola_gradient in class Mapping<dim,spacedim>::transform()
+		  //Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
+		  for (unsigned int comp=0; comp<n_components; comp++)
+		  {
+			  for (unsigned int d=0; d<dim; ++d)
+			  {
+				  grad_out[comp][d] = this->gradients_quad[comp][d][q_point]/J_value[0];
+				  if (comp != d)
+					  grad_out[comp][d] *= (cartesian_data[0][d] / cartesian_data[0][comp]);
+			  }
+		  }
+	  }
+	  else
+	  {
+		  for (unsigned int comp=0; comp<n_components; comp++)
+			  for (unsigned int d=0; d<dim; ++d)
+				  grad_out[comp][d] = (this->gradients_quad[comp][d][q_point] *
                                cartesian_data[0][d]);
+	  }
     }
   // cell with general/affine Jacobian
   else
     {
+	  Assert (!is_non_primitive==true, ExcNotImplemented());
+
       const Tensor<2,dim,VectorizedArray<Number> > &jac =
         this->cell_type == internal::MatrixFreeFunctions::general ?
         jacobian[q_point] : jacobian[0];
@@ -4094,9 +4209,22 @@ FEEvaluationBase<dim,n_components_,Number>
     }
   else //if (this->cell_type < internal::MatrixFreeFunctions::general)
     {
-      const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
-      for (unsigned int comp=0; comp<n_components; ++comp)
-        this->values_quad[comp][q_point] = val_in[comp] * JxW;
+	  if (is_non_primitive && ((mapping_type & mapping_piola) == mapping_piola) )
+	    {
+	    	Assert (this->cell_type == internal::MatrixFreeFunctions::cartesian==true,
+	  	          ExcNotImplemented());
+
+			for (unsigned int comp=0; comp<n_components; ++comp)
+			  this->values_quad[comp][q_point] =
+					  (val_in[comp]* quadrature_weights[q_point])/cartesian_data[0][comp];
+						// *(J_value[0]/J_value[0]) = 1
+	    }
+	  else
+	  {
+		  const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
+		  for (unsigned int comp=0; comp<n_components; ++comp)
+			  this->values_quad[comp][q_point] = val_in[comp] * JxW;
+	  }
     }
 }
 
@@ -4117,11 +4245,33 @@ FEEvaluationBase<dim,n_components_,Number>
 #endif
   if (this->cell_type == internal::MatrixFreeFunctions::cartesian)
     {
-      const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
-      for (unsigned int comp=0; comp<n_components; comp++)
-        for (unsigned int d=0; d<dim; ++d)
-          this->gradients_quad[comp][d][q_point] = (grad_in[comp][d] *
-                                                    cartesian_data[0][d] * JxW);
+	  if (is_non_primitive &&
+			  ((mapping_type & mapping_piola_gradient) == mapping_piola_gradient) )
+	  {
+		  //The current functionality is limited to Raviart Thomas elements (and FE_Q)
+		  //Evaluate Piola transform gradient to the same extent as dealii
+		  // See mapping_piola_gradient in class Mapping<dim,spacedim>::transform()
+		  //Not expecting ~zero determinant ever or ~zero jacobian on cartesian cells
+		  for (unsigned int comp=0; comp<n_components; comp++)
+		  {
+			  for (unsigned int d=0; d<dim; ++d)
+			  {
+				  this->gradients_quad[comp][d][q_point] =
+						  (grad_in[comp][d] * quadrature_weights[q_point]); // *(J_value[0]/J_value[0]) = 1
+				  if (comp !=d)
+					  this->gradients_quad[comp][d][q_point] *= (cartesian_data[0][d] / cartesian_data[0][comp]);
+			  }
+		  }
+	  }
+	  else
+	  {
+		  const VectorizedArray<Number> JxW = J_value[0] * quadrature_weights[q_point];
+
+		  for (unsigned int comp=0; comp<n_components; comp++)
+			  for (unsigned int d=0; d<dim; ++d)
+				  this->gradients_quad[comp][d][q_point] = (grad_in[comp][d] *
+						  	  	  	  	  	  	  	 cartesian_data[0][d] * JxW);
+	  }
     }
   else
     {
@@ -5428,6 +5578,100 @@ FEEvaluation<dim,fe_degree,n_q_points_1d,n_components_,Number>
          this->mapped_geometry->is_initialized(), ExcNotInitialized());
 
   SelectEvaluator<dim, fe_degree, n_q_points_1d, n_components, Number>
+  ::integrate (*this->data, &this->values_dofs[0], this->values_quad,
+               this->gradients_quad, this->scratch_data,
+               integrate_values, integrate_gradients);
+
+#ifdef DEBUG
+  this->dof_values_initialized = true;
+#endif
+}
+
+/*-------------------------- FEEvaluationAni -----------------------------------*/
+
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
+inline
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
+::FEEvaluationAni (const MatrixFree<dim,Number> &data_in,
+                const unsigned int fe_no,
+                const unsigned int quad_no)
+  :
+   BaseClass (data_in, fe_no, quad_no,
+   		  	  numbers::invalid_unsigned_int, //required only for hp FE
+   		  	numbers::invalid_unsigned_int), //required only for hp FE
+  dofs_per_component (this->data->dofs_per_component_on_cell),
+  dofs_per_cell (this->data->dofs_per_component_on_cell *n_components),
+  n_q_points (this->data->n_q_points)
+{
+    static_assert(n_components == dim,
+                  "The given FEType is not supported by MF framework!"
+    			  "The number of components!= dim. "
+    			  "This record was checked from fe_evaluation_gen.h");
+
+    //TODO check that FEType matches FE in data_in
+
+	std::string message = "-------------------------------------------------------\n";
+	    message += "Mismatch in Finite Element as given in MatrixFree and FEEvaluation!\n";
+	    message += "DOFs per cell from MatrixFree object = ";
+	    message += Utilities::int_to_string(dofs_per_cell) + "\n";
+	    message += "DOFs per cell from FE details given to FEEvaluation object = ";
+	    message += Utilities::int_to_string(get_FEData<FEType,dim,0,base_fe_degree,0>::dofs_per_cell) + "\n";
+
+	    Assert (dofs_per_cell == (get_FEData<FEType,dim,0,base_fe_degree,0>::dofs_per_cell),
+	              ExcMessage(message));
+}
+
+
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
+inline
+void
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
+::evaluate (const bool evaluate_values,
+            const bool evaluate_gradients,
+            const bool evaluate_hessians)
+{
+  Assert (this->dof_values_initialized == true,
+          internal::ExcAccessToUninitializedField());
+  Assert(this->matrix_info != nullptr ||
+         this->mapped_geometry->is_initialized(), ExcNotInitialized());
+
+  SelectEvaluatorAni<FEType, n_q_points_1d, dim, base_fe_degree, Number>
+  ::evaluate (*this->data, &this->values_dofs[0], this->values_quad,
+              this->gradients_quad, this->hessians_quad, this->scratch_data,
+              evaluate_values, evaluate_gradients, evaluate_hessians);
+
+#ifdef DEBUG
+  if (evaluate_values == true)
+    this->values_quad_initialized = true;
+  if (evaluate_gradients == true)
+    this->gradients_quad_initialized = true;
+  if (evaluate_hessians == true)
+    this->hessians_quad_initialized  = true;
+#endif
+}
+
+
+
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
+inline
+void
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
+::integrate (const bool integrate_values,
+             const bool integrate_gradients)
+{
+  if (integrate_values == true)
+    Assert (this->values_quad_submitted == true,
+            internal::ExcAccessToUninitializedField());
+  if (integrate_gradients == true)
+    Assert (this->gradients_quad_submitted == true,
+            internal::ExcAccessToUninitializedField());
+  Assert(this->matrix_info != nullptr ||
+         this->mapped_geometry->is_initialized(), ExcNotInitialized());
+
+  SelectEvaluatorAni<FEType, n_q_points_1d, dim, base_fe_degree, Number>
   ::integrate (*this->data, &this->values_dofs[0], this->values_quad,
                this->gradients_quad, this->scratch_data,
                integrate_values, integrate_gradients);

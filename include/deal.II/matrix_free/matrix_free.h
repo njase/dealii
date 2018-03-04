@@ -283,7 +283,7 @@ public:
    */
   //@{
   /**
-   * Default empty constructor. Does nothing.
+   * Default constructor.
    */
   MatrixFree ();
 
@@ -418,7 +418,7 @@ public:
                const QuadratureType                        &quad,
                const AdditionalData                        additional_data = AdditionalData());
 
-  /**
+   /**
    * Copy function. Creates a deep copy of all data structures. It is usually
    * enough to keep the data for different operations once, so this function
    * should not be needed very often.
@@ -582,7 +582,7 @@ public:
   get_vector_partitioner (const unsigned int vector_component=0) const;
 
   /**
-   * Return the set of cells that are oned by the processor.
+   * Return the set of cells that are owned by the processor.
    */
   const IndexSet &
   get_locally_owned_set (const unsigned int fe_component = 0) const;
@@ -869,6 +869,8 @@ public:
    */
   void release_scratch_data(const AlignedVector<VectorizedArray<Number> > *memory) const;
 
+  unsigned int get_mapping_type(const unsigned int fe_component) const;
+
   //@}
 
 private:
@@ -915,6 +917,7 @@ private:
    */
   void initialize_dof_handlers (const std::vector<const hp::DoFHandler<dim>*> &dof_handlers,
                                 const unsigned int                             level);
+
 
   /**
    * This struct defines which DoFHandler has actually been given at
@@ -1549,7 +1552,18 @@ MatrixFree<dim,Number>::release_scratch_data(const AlignedVector<VectorizedArray
   AssertThrow(false, ExcMessage("Tried to release invalid scratch pad"));
 }
 
+template <int dim, typename Number>
+inline
+unsigned int
+MatrixFree<dim,Number>::get_mapping_type(const unsigned int fe_component) const
+{
+	const FiniteElement<dim> *fe = &get_dof_handler(fe_component).get_fe();
 
+	if (dynamic_cast<const FE_RaviartThomas<dim> *>(fe))
+		return mapping_piola | mapping_piola_gradient ;
+	else
+		return mapping_covariant | mapping_covariant_gradient ;
+}
 
 // ------------------------------ reinit functions ---------------------------
 
@@ -1603,7 +1617,7 @@ reinit(const DoFHandlerType                                  &dof_handler,
 {
   std::vector<const DoFHandlerType *>   dof_handlers;
   std::vector<const ConstraintMatrix *> constraints;
-  std::vector<QuadratureType>           quads;
+  std::vector<QuadratureType>           quads; //FIXME: COMMENT: This vector is locally created and unused, purpose?
 
   dof_handlers.push_back(&dof_handler);
   constraints.push_back (&constraints_in);

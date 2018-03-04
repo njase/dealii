@@ -49,10 +49,14 @@ FE_RaviartThomas<dim>::FE_RaviartThomas (const unsigned int deg)
                            dim, deg+1, FiniteElementData<dim>::Hdiv),
     std::vector<bool>(PolynomialsRaviartThomas<dim>::compute_n_pols(deg), true),
     std::vector<ComponentMask>(PolynomialsRaviartThomas<dim>::compute_n_pols(deg),
-                               std::vector<bool>(dim,true)))
+                               std::vector<bool>(dim,true))),
+                               n_interior_dofs(0), n_face_dofs(0)
 {
   Assert (dim >= 2, ExcImpossibleInDim(dim));
   const unsigned int n_dofs = this->dofs_per_cell;
+
+  n_face_dofs = GeometryInfo<dim>::faces_per_cell*std::pow(deg+1,dim-1);
+  n_interior_dofs = deg*dim*std::pow(deg+1,dim-1);
 
   this->mapping_type = mapping_raviart_thomas;
   // First, initialize the
@@ -505,6 +509,12 @@ FE_RaviartThomas<dim>::memory_consumption () const
   return 0;
 }
 
+template <int dim>
+const FullMatrix<double> &
+FE_RaviartThomas<dim>::get_inverse_node_matrix() const
+{
+	return (this->inverse_node_matrix);
+}
 
 
 // explicit instantiations

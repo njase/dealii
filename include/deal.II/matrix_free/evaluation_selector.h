@@ -377,6 +377,32 @@ struct SelectEvaluator<dim, -1, n_q_points_1d, n_components, Number>
                         const bool               integrate_gradients);
 };
 
+
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
+struct SelectEvaluatorAni
+{
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
+
+	static void evaluate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
+	                       VectorizedArray<Number> *values_dofs_actual[],
+	                       VectorizedArray<Number> *values_quad[],
+	                       VectorizedArray<Number> *gradients_quad[][dim],
+	                       VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2],
+	                       VectorizedArray<Number> *scratch_data,
+	                       const bool               evaluate_values,
+	                       const bool               evaluate_gradients,
+	                       const bool               evaluate_hessians);
+
+	  static void integrate(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
+	                        VectorizedArray<Number> *values_dofs_actual[],
+	                        VectorizedArray<Number> *values_quad[],
+	                        VectorizedArray<Number> *gradients_quad[][dim],
+	                        VectorizedArray<Number> *scratch_data,
+	                        const bool               integrate_values,
+	                        const bool               integrate_gradients);
+};
+
+
 //----------------------Implementation for SelectEvaluator---------------------
 #ifndef DOXYGEN
 
@@ -603,6 +629,136 @@ SelectEvaluator<dim, -1, dummy, n_components, Number>::integrate
      gradients_quad, scratch_data,
      integrate_values, integrate_gradients);
 }
+
+
+
+//TODO: Put a check on the right type to be given as template argument to FEEvaluationImplGen
+//Currently, only tensor_general is provided as default for testing and debugging
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
+inline
+void
+SelectEvaluatorAni<FEType, n_q_points_1d,dim,base_fe_degree,Number>::evaluate
+	(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
+	 VectorizedArray<Number> *values_dofs_actual[],
+	 VectorizedArray<Number> *values_quad[],
+	 VectorizedArray<Number> *gradients_quad[][dim],
+	 VectorizedArray<Number> *hessians_quad[][(dim*(dim+1))/2],
+	 VectorizedArray<Number> *scratch_data,
+	 const bool               evaluate_values,
+	 const bool               evaluate_gradients,
+	 const bool               evaluate_hessians)
+{
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
+
+	if (n_components == 1)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+             ::evaluate(shape_info, values_dofs_actual, values_quad,
+                        gradients_quad, hessians_quad, scratch_data,
+                        evaluate_values, evaluate_gradients, evaluate_hessians);
+	}
+
+	if (n_components == 2)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+             ::evaluate(shape_info, values_dofs_actual, values_quad,
+                        gradients_quad, hessians_quad, scratch_data,
+                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,1>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+	}
+	if (n_components == 3)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+             ::evaluate(shape_info, values_dofs_actual, values_quad,
+                        gradients_quad, hessians_quad, scratch_data,
+                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,1>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,2>
+		             ::evaluate(shape_info, values_dofs_actual, values_quad,
+		                        gradients_quad, hessians_quad, scratch_data,
+		                        evaluate_values, evaluate_gradients, evaluate_hessians);
+
+	}
+
+}
+
+
+template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number>
+inline
+void
+SelectEvaluatorAni<FEType,n_q_points_1d,dim,base_fe_degree,Number>::integrate
+		(const internal::MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number> > &shape_info,
+	                        VectorizedArray<Number> *values_dofs_actual[],
+	                        VectorizedArray<Number> *values_quad[],
+	                        VectorizedArray<Number> *gradients_quad[][dim],
+	                        VectorizedArray<Number> *scratch_data,
+	                        const bool               integrate_values,
+	                        const bool               integrate_gradients)
+{
+	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
+
+	if (n_components == 1)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
+	if (n_components == 2)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,1>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
+	if (n_components == 3)
+	{
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,0>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,1>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+
+		internal::FEEvaluationImplAni<internal::MatrixFreeFunctions::tensor_general,
+             FEType, dim, base_fe_degree, n_q_points_1d, Number,2>
+	           ::integrate(shape_info, values_dofs_actual, values_quad,
+	                      gradients_quad, scratch_data,
+	                      integrate_values, integrate_gradients);
+	}
+
+}
+
 #endif //DOXYGEN
 
 DEAL_II_NAMESPACE_CLOSE

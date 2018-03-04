@@ -22,6 +22,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/aligned_vector.h>
 #include <deal.II/fe/fe.h>
+#include <deal.II/matrix_free/fe_evaluation_gen.h>
 
 
 DEAL_II_NAMESPACE_OPEN
@@ -86,10 +87,13 @@ namespace internal
     template <typename Number>
     struct ShapeInfo
     {
+    	using ShapeVector = AlignedVector<Number>;
+    	using ShapeIterator = typename ShapeVector::iterator;
+
       /**
        * Empty constructor. Does nothing.
        */
-      ShapeInfo ();
+    	ShapeInfo ();
 
       /**
        * Constructor that initializes the data fields using the reinit method.
@@ -97,7 +101,8 @@ namespace internal
       template <int dim>
       ShapeInfo (const Quadrature<1> &quad,
                  const FiniteElement<dim> &fe,
-                 const unsigned int base_element = 0);
+                 const unsigned int base_element = 0
+                 );
 
       /**
        * Initializes the data fields. Takes a one-dimensional quadrature
@@ -117,12 +122,47 @@ namespace internal
        */
       std::size_t memory_consumption () const;
 
+    private:
+      //Shape values - basis shape values
+      std::vector<ShapeVector> base_shape_values;
+      std::vector<ShapeVector> base_shape_gradients;
+      std::vector<ShapeVector> base_shape_hessians;
+
+      template <int dim>
+      void internal_reinit_scalar (const Quadrature<1> &quad,
+                   const FiniteElement<dim> &fe_dim,
+                   const unsigned int base_element);
+
+      template <int dim>
+            void internal_reinit_vector (const Quadrature<1> &quad,
+                         const FiniteElement<dim> &fe_dim,
+                         const unsigned int base_element);
+
+      template <int dim>
+      	  std::vector<unsigned int>
+      	  lexicographic_renumber(const FiniteElement<dim> &fe,
+      			  	  	  		const unsigned int base_element_number);
+
+      template <int dim>
+      	  void
+      	  raviart_thomas_lexicographic_renumber(const FE_RaviartThomas<dim> * fe);
+
+    public:
       /**
        * Encodes the type of element detected at construction. FEEvaluation
        * will select the most efficient algorithm based on the given element
        * type.
        */
       ElementType element_type;
+
+      /*
+       * To indicate preference for using non-primitive FE. Default = false
+       */
+      bool use_non_primitive;
+
+      //Vector of components. Vector size = no of components
+      //These are now used as component wise shape_values
+      //they pick up permutations from base_shape_values for each direction in a component
 
       /**
        * Stores the shape values of the 1D finite element evaluated on all 1D
@@ -132,6 +172,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_values;
+      std::vector<std::array<ShapeIterator,3>> shape_values_vec;
 
       /**
        * Stores the shape gradients of the 1D finite element evaluated on all
@@ -141,6 +182,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_gradients;
+      std::vector<std::array<ShapeIterator,3>> shape_gradients_vec;
 
       /**
        * Stores the shape Hessians of the 1D finite element evaluated on all
@@ -150,6 +192,7 @@ namespace internal
        * points are the index running fastest.
        */
       AlignedVector<Number> shape_hessians;
+      std::vector<std::array<ShapeIterator,3>> shape_hessians_vec;
 
       /**
        * Stores the shape values in a different format, namely the so-called
@@ -222,6 +265,8 @@ namespace internal
 
       /**
        * Stores the degree of the element.
+       * @note For vector element, this stores the maximal
+       * polynomial degree of the shape function across all components
        */
       unsigned int fe_degree;
 
@@ -233,12 +278,15 @@ namespace internal
       /**
        * Stores the number of quadrature points in @p dim dimensions for a
        * cell.
+       * @note: For vector element, this implies number of quad points
+       * per component
        */
       unsigned int n_q_points;
 
       /**
        * Stores the number of DoFs per cell of the scalar element in @p dim
        * dimensions.
+       * @note: For vector element, this is equal to dofs_per_cell/n_components
        */
       unsigned int dofs_per_component_on_cell;
 
@@ -348,9 +396,10 @@ namespace internal
        * that save some operations in the evaluation.
        */
       bool check_1d_shapes_collocation();
+
+
+      bool is_non_primitive() const {return use_non_primitive;};
     };
-
-
 
     // ------------------------------------------ inline functions
 
@@ -362,8 +411,8 @@ namespace internal
                                   const unsigned int base_element_number)
       :
       element_type(tensor_general),
-      fe_degree (0),
-      n_q_points_1d (0),
+      fe_degree(0),
+      n_q_points_1d(0),
       n_q_points (0),
       dofs_per_component_on_cell (0),
       n_q_points_face (0),
@@ -372,7 +421,6 @@ namespace internal
     {
       reinit (quad, fe_in, base_element_number);
     }
-
   } // end of namespace MatrixFreeFunctions
 
 } // end of namespace internal

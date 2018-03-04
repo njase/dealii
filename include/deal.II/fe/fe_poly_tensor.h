@@ -417,7 +417,7 @@ protected:
    * PolynomialType.
    */
   PolynomialType poly_space;
-
+protected:
   /**
    * The inverse of the matrix <i>a<sub>ij</sub></i> of node values
    * <i>N<sub>i</sub></i> applied to polynomial <i>p<sub>j</sub></i>. This
