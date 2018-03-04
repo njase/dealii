@@ -335,7 +335,7 @@ namespace internal
         return scalar_lexicographic;
     }
 
-    //FIXME : Currently this supports dim=2 only, and k > 2,3.
+    //Currently this supports dim=2 only.
     //Old ordering:
     //			 <face points for component 1, face points for compnent 2...>,
     //			 <1st interior point for component 1, 1st interior points for component 2...>
@@ -368,7 +368,7 @@ namespace internal
     			lexicographic_numbering[n_per_comp*d+nfp_per_comp+i] = current++;
 
 #ifdef __UT__
-    	//Only for debugging - uptil here is fine for any degree in dim2
+    	//Only for debugging
     	std::cout<<std::endl;
 		std::cout<<"First reordering lexicographic result is"<<std::endl;
 		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
@@ -403,7 +403,7 @@ namespace internal
 		}
 
 #ifdef __UT__
-    	//Only for debugging - incorrect result for deg>2
+    	//Only for debugging
     	std::cout<<std::endl;
 		std::cout<<"lexicographic result is"<<std::endl;
 		for (unsigned int j=0; j<lexicographic_numbering.size(); j++)
@@ -652,7 +652,7 @@ namespace internal
                  const unsigned int base_element_number)
     {
     	unsigned int vector_n_components = fe_in.n_components();
-    	//FIXME Extend for dim=3
+
     	if (vector_n_components > 2 || dim > 2)
     		Assert (false, ExcNotImplemented());
 
@@ -665,16 +665,6 @@ namespace internal
 
     	unsigned int base_values_count = 0;
     	std::array<unsigned int, 2> n_dofs_1d; //not more than 2 distinct values in case of RT
-
-        /*
-         * Algo
-         * Using FE Type, identify number of components
-         * utilize the reinit logic of ShapeInfo (restructure it) to evaluate values, quad and hessians
-         *  for the required 1-D quad points and 1-D basis functions as many times as required for the particular
-         *  FEType. Store the results in basic_shape_values
-         * perform reinit for all the components as:
-    	 *   Mix and match results from basic_shape_values to shape_values_component as needed
-         */
 
     	const FiniteElement<dim> *fe = &fe_in.base_element(base_element_number);
 
@@ -747,6 +737,7 @@ namespace internal
         }
         else if (FEName::FE_RT == fe_name)
         {
+        	//FIXME: This does not work for RT3 and beyond
         	const FE_RaviartThomas<dim> * fe_rt = dynamic_cast<const FE_RaviartThomas<dim> *>(fe);
         	raviart_thomas_lexicographic_renumber(fe_rt);
 
@@ -884,7 +875,7 @@ namespace internal
                 		for (int k=1; k<psize; k++)
                 		     this->base_shape_gradients[j][i*n_q_points_1d+q] = this->base_shape_gradients[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_grads[k][0];
 
-                		//TODO: Yet to be verified for hessians
+                		//FIXME: Yet to be verified for hessians
                 		this->base_shape_hessians[j][i*n_q_points_1d+q] = tensor_inv_nodal[j](i,0)*p_grad_grads[0][0][0];
                 		for (int k=1; k<psize; k++)
                 		     this->base_shape_hessians[j][i*n_q_points_1d+q] = this->base_shape_hessians[j][i*n_q_points_1d+q] + tensor_inv_nodal[j](i,k)*p_grad_grads[k][0][0];

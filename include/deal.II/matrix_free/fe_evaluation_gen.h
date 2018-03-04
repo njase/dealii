@@ -1,10 +1,3 @@
-/*
- * fe_evaluation_gen.h
- *
- *  Created on: Dec 11, 2017
- *      Author: smehta
- */
-
 #ifndef FE_EVALUATION_GEN_H_
 #define FE_EVALUATION_GEN_H_
 
@@ -62,7 +55,7 @@ DEAL_II_NAMESPACE_OPEN
 					Utilities::fixed_int_power<base_fe_degree+1,dim-1>::value*dim*(base_fe_degree+2);
 	};
 
-	//Qk,Q(k-1) element = FE_TaylorHood
+	//Q(k+1),Q(k) element = FE_TaylorHood
 	template <int dim, int dir, int base_fe_degree, int c>
 	struct get_FEData<FE_Q<dim>, dim, dir, base_fe_degree, c>
 	{

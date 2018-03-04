@@ -2069,8 +2069,8 @@ private:
 };
 
 
- template <typename FEType, int n_q_points_1d, int dim, int base_fe_degree, typename Number >
- class FEEvaluationGen : public FEEvaluationAccess<dim, get_n_comp<FEType,dim>::n_components,Number>
+ template <typename FEType, int dim, int base_fe_degree, int n_q_points_1d, typename Number >
+ class FEEvaluationAni : public FEEvaluationAccess<dim, get_n_comp<FEType,dim>::n_components,Number>
  {
  public:
    using BaseClass =  FEEvaluationAccess<dim,get_n_comp<FEType,dim>::n_components,Number>;
@@ -2093,84 +2093,9 @@ private:
     * selected during construction of @p matrix_free, @p fe_no and @p quad_no
     * allow to select the appropriate components.
     */
-   FEEvaluationGen (const MatrixFree<dim,Number> &matrix_free,
+   FEEvaluationAni (const MatrixFree<dim,Number> &matrix_free,
                  const unsigned int            fe_no   = 0,
                  const unsigned int            quad_no = 0);
-
-#if 0
-   /**
-    * Constructor that comes with reduced functionality and works similar as
-    * FEValues. The arguments are similar to the ones passed to the constructor
-    * of FEValues, with the notable difference that FEEvaluation expects a one-
-    * dimensional quadrature formula, Quadrature<1>, instead of a @p dim
-    * dimensional one. The finite element can be both scalar or vector valued,
-    * but this method always only selects a scalar base element at a time (with
-    * @p n_components copies as specified by the class template). For vector-
-    * valued elements, the optional argument @p first_selected_component allows
-    * to specify the index of the base element to be used for evaluation. Note
-    * that the internal data structures always assume that the base element is
-    * primitive, non-primitive are not supported currently.
-    *
-    * As known from FEValues, a call to the reinit method with a
-    * Triangulation<dim>::cell_iterator is necessary to make the geometry and
-    * degrees of freedom of the current class known. If the iterator includes
-    * DoFHandler information (i.e., it is a DoFHandler<dim>::cell_iterator or
-    * similar), the initialization allows to also read from or write to vectors
-    * in the standard way for DoFHandler<dim>::active_cell_iterator types for
-    * one cell at a time. However, this approach is much slower than the path
-    * with MatrixFree with MPI since index translation has to be done. As only
-    * one cell at a time is used, this method does not vectorize over several
-    * elements (which is most efficient for vector operations), but only
-    * possibly within the element if the evaluate/integrate routines are
-    * combined inside user code (e.g. for computing cell matrices).
-    */
-   FEEvaluationGen (const Mapping<dim>       &mapping,
-                 const FiniteElement<dim> &fe,
-                 const Quadrature<1>      &quadrature,
-                 const UpdateFlags         update_flags,
-                 const unsigned int        first_selected_component = 0);
-
-   /**
-    * Constructor for the reduced functionality. This constructor is equivalent
-    * to the other one except that it makes the object use a $Q_1$ mapping
-    * (i.e., an object of type MappingQGeneric(1)) implicitly.
-    */
-   FEEvaluationGen (const FiniteElement<dim> &fe,
-                 const Quadrature<1>      &quadrature,
-                 const UpdateFlags         update_flags,
-                 const unsigned int        first_selected_component = 0);
-
-   /**
-    * Constructor for the reduced functionality. Similar to the other
-    * constructor with FiniteElement argument but using another
-    * FEEvaluationBase object to provide info about the geometry. This allows
-    * several FEEvaluation objects to share the geometry evaluation, i.e., the
-    * underlying mapping and quadrature points do only need to be evaluated
-    * once. Make sure to not pass an optional object around when you intend to
-    * use the FEEvaluation object in %parallel to the given one because
-    * otherwise the intended sharing may create race conditions.
-    */
-   template <int n_components_other>
-   FEEvaluationGen (const FiniteElement<dim> &fe,
-                 const FEEvaluationBase<dim,n_components_other,Number> &other,
-                 const unsigned int        first_selected_component = 0);
-
-   /**
-    * Copy constructor. If FEEvaluationBase was constructed from a mapping, fe,
-    * quadrature, and update flags, the underlying geometry evaluation based on
-    * FEValues will be deep-copied in order to allow for using in parallel with
-    * threads.
-    */
-   FEEvaluationGen (const FEEvaluationGen &other);
-
-   /**
-    * Copy assignment operator. If FEEvaluationBase was constructed from a
-    * mapping, fe, quadrature, and update flags, the underlying geometry
-    * evaluation based on FEValues will be deep-copied in order to allow for
-    * using in parallel with threads.
-    */
-   FEEvaluationGen &operator= (const FEEvaluationGen &other);
-#endif
 
    /**
     * See @FEEvaluation.evaluate
@@ -3359,14 +3284,6 @@ FEEvaluationBase<dim,n_components_,Number>
     // included in one single vector. Assumption: first come all entries to
     // the first component, then all entries to the second one, and so
     // on. This is ensured by the way MatrixFree reads out the indices.
-	//NO -- IGNORE: There's a WA possible and is in use
-	// This current implementation does not work out if the MatrixFree has two
-	// dof objects where one corresponds to vector valued fe. In such a case
-	// if the dofs for all components are in a single vector, the locally owned
-	// index set size will have a mismatch. This limitation does not work with
-	//my intended implementation and needs some rework here
-	//If we want to treat FE as non-primitive, we pass around this limitation
-	//although functionality is limited
     {
       internal::check_vector_compatibility (*src[0], *dof_info);
       Assert (n_fe_components == n_components_, ExcNotImplemented());
@@ -3511,24 +3428,6 @@ FEEvaluationBase<dim,n_components_,Number>
   // of components is checked in the internal data
   typename internal::BlockVectorSelector<VectorType,
            IsBlockVector<VectorType>::value>::BaseVectorType *src_data[n_components];
-
-#if 0
-  if (matrix_info->is_primitive())
-  {
-	  src_data[0] = internal::BlockVectorSelector<VectorType,
-	  						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
-	  						first_index);
-	  for (unsigned int d=1; d<n_components; ++d)
-		  src_data[d] = nullptr;
-  }
-  else
-  {
-	  for (unsigned int d=0; d<n_components; ++d)
-		  src_data[d] = internal::BlockVectorSelector<VectorType,
-						IsBlockVector<VectorType>::value>::get_vector_component(const_cast<VectorType &>(src),
-						d+first_index);
-  }
-#endif
 
   for (unsigned int d=0; d<n_components; ++d)
     src_data[d] = internal::BlockVectorSelector<VectorType,
@@ -5688,13 +5587,13 @@ FEEvaluation<dim,fe_degree,n_q_points_1d,n_components_,Number>
 #endif
 }
 
-/*-------------------------- FEEvaluationGen -----------------------------------*/
+/*-------------------------- FEEvaluationAni -----------------------------------*/
 
-template <typename FEType, int n_q_points_1d, int dim,
-			int base_fe_degree, typename Number >
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
 inline
-FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
-::FEEvaluationGen (const MatrixFree<dim,Number> &data_in,
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
+::FEEvaluationAni (const MatrixFree<dim,Number> &data_in,
                 const unsigned int fe_no,
                 const unsigned int quad_no)
   :
@@ -5721,15 +5620,14 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
 
 	    Assert (dofs_per_cell == (get_FEData<FEType,dim,0,base_fe_degree,0>::dofs_per_cell),
 	              ExcMessage(message));
-  //check_template_arguments(fe_no, 0);
 }
 
 
-template <typename FEType, int n_q_points_1d, int dim,
-			int base_fe_degree, typename Number >
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
 inline
 void
-FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
 ::evaluate (const bool evaluate_values,
             const bool evaluate_gradients,
             const bool evaluate_hessians)
@@ -5739,7 +5637,7 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
   Assert(this->matrix_info != nullptr ||
          this->mapped_geometry->is_initialized(), ExcNotInitialized());
 
-  SelectEvaluatorGen<FEType, n_q_points_1d, dim, base_fe_degree, Number>
+  SelectEvaluatorAni<FEType, n_q_points_1d, dim, base_fe_degree, Number>
   ::evaluate (*this->data, &this->values_dofs[0], this->values_quad,
               this->gradients_quad, this->hessians_quad, this->scratch_data,
               evaluate_values, evaluate_gradients, evaluate_hessians);
@@ -5756,11 +5654,11 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
 
 
 
-template <typename FEType, int n_q_points_1d, int dim,
-			int base_fe_degree, typename Number >
+template <typename FEType, int dim, int base_fe_degree,
+		int n_q_points_1d, typename Number >
 inline
 void
-FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
+FEEvaluationAni<FEType,dim,base_fe_degree,n_q_points_1d,Number>
 ::integrate (const bool integrate_values,
              const bool integrate_gradients)
 {
@@ -5773,7 +5671,7 @@ FEEvaluationGen<FEType,n_q_points_1d,dim,base_fe_degree,Number>
   Assert(this->matrix_info != nullptr ||
          this->mapped_geometry->is_initialized(), ExcNotInitialized());
 
-  SelectEvaluatorGen<FEType, n_q_points_1d, dim, base_fe_degree, Number>
+  SelectEvaluatorAni<FEType, n_q_points_1d, dim, base_fe_degree, Number>
   ::integrate (*this->data, &this->values_dofs[0], this->values_quad,
                this->gradients_quad, this->scratch_data,
                integrate_values, integrate_gradients);

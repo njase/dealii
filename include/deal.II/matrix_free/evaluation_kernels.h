@@ -857,17 +857,20 @@ namespace internal
   }
 
 
-  //A more general implementation compared with FEEvaluationImpl
-  //TODO:
-  // 1. It is also possible to define the stuff as abstract algo, but thats maybe for later
 
+  // Evaluation for anisotropic Tensor Product Finite Elements
+  // Currently supports Raviart-Thomas elements
+  // Ofcourse anisotropic manner of evaluation can also be used to evaluate
+  // isotropic elements. This facility can be used for debugging and experimentation
   // @base_fe_degree : e.g. RT0 = 0, RT1 = 1
-  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number, int c=0>
-  struct FEEvaluationImplGen
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int dim,
+            int base_fe_degree, int n_q_points_1d, typename Number,int c=0>
+  struct FEEvaluationImplAni
   {
 	static constexpr int n_components = get_n_comp<FEType,dim>::n_components;
-    static const int max_fe_degree = get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree, n_components-1 /* any component */>::max_fe_degree;
+    static const int max_fe_degree =
+    			get_FEData<FEType, dim, 0 /* any dir */, base_fe_degree,
+				n_components-1 /* any component */>::max_fe_degree;
     using VecArr = VectorizedArray<Number>;
 
     static
@@ -892,13 +895,13 @@ namespace internal
   };
 
 
-  //Evaluate of both values and gradients is of type tr(A)*U*B
-  //Hessians is TBD. dim=3 is TBD
-  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number, int c>
+  // Only 1-D and 2-D are tested and supported
+  // evaluation of hessians is not tested, not supported
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int dim,
+            int base_fe_degree, int n_q_points_1d, typename Number,int c>
   inline
   void
-  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number,c>
+  FEEvaluationImplAni<type,FEType,dim,base_fe_degree,n_q_points_1d,Number,c>
   ::evaluate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
               VectorizedArray<Number> *values_dofs_actual[],
               VectorizedArray<Number> *values_quad[],
@@ -911,6 +914,8 @@ namespace internal
   {
     if (evaluate_values == false && evaluate_gradients == false && evaluate_hessians == false)
       return;
+
+    Assert (evaluate_hessians == false, ExcNotImplemented());
 
     const EvaluatorVariant variant =
       EvaluatorSelector<type,(max_fe_degree+n_q_points_1d>4)>::variant;
@@ -931,8 +936,6 @@ namespace internal
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
-    //for (unsigned int c=0; c<n_components; c++)
-    //{
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?
                                       Eval::dofs_per_cell : Eval::n_q_points);
@@ -961,7 +964,6 @@ namespace internal
     switch (dim)
       {
       case 1:
-       // for (unsigned int c=0; c<n_components; c++)
           {
         	constexpr int fe_deg_x1 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
             if (evaluate_values == true)
@@ -974,7 +976,6 @@ namespace internal
         break;
 
       case 2:
-        //for (unsigned int c=0; c<n_components; c++)
           {
         	constexpr int fe_deg_x2 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
         	constexpr int fe_deg_y2 = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
@@ -1014,7 +1015,6 @@ namespace internal
         break;
 
       case 3:
-        //for (unsigned int c=0; c<n_components; c++)
           {
             if (evaluate_gradients == true)
               {
@@ -1082,26 +1082,15 @@ namespace internal
       default:
         Assert(false, ExcNotImplemented());
       }
-    //}//end of for loop
-
-#if 0
-    // case additional dof for FE_Q_DG0: add values; gradients and second
-    // derivatives evaluate to zero
-    if (type == MatrixFreeFunctions::tensor_symmetric_plus_dg0 && evaluate_values)
-      for (unsigned int c=0; c<n_components; ++c)
-        for (unsigned int q=0; q<shape_info.n_q_points; ++q)
-          values_quad[c][q] += values_dofs[c][shape_info.dofs_per_component_on_cell-1];
-#endif
   }
 
 
-  //Integration of both values and gradients is of type A*U*tr(B)
-  //dim=3 is TBD
-  template <MatrixFreeFunctions::ElementType type, typename FEType, int n_q_points_1d,
-  		  int dim, int base_fe_degree, typename Number, int c>
+  // Only 1-D and 2-D are tested and supported
+  template <MatrixFreeFunctions::ElementType type, typename FEType, int dim,
+            int base_fe_degree, int n_q_points_1d, typename Number,int c>
   inline
   void
-  FEEvaluationImplGen<type,FEType, n_q_points_1d, dim, base_fe_degree,Number,c>
+  FEEvaluationImplAni<type,FEType, dim, base_fe_degree, n_q_points_1d, Number,c>
   ::integrate (const MatrixFreeFunctions::ShapeInfo<VectorizedArray<Number>> &shape_info,
                VectorizedArray<Number> *values_dofs_actual[],
                VectorizedArray<Number> *values_quad[],
@@ -1130,8 +1119,6 @@ namespace internal
                shape_info.fe_degree,
                shape_info.n_q_points_1d);
 
-    for (unsigned int c_old=0; c_old<n_components; c_old++)
-    {
     const unsigned int temp_size = Eval::dofs_per_cell == numbers::invalid_unsigned_int ? 0
                                    : (Eval::dofs_per_cell > Eval::n_q_points ?
                                       Eval::dofs_per_cell : Eval::n_q_points);
@@ -1157,7 +1144,6 @@ namespace internal
     switch (dim)
       {
       case 1:
-        //for (unsigned int c=0; c<n_components; c++)
           {
         	constexpr int fe_deg_x1 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
 
@@ -1174,7 +1160,6 @@ namespace internal
         break;
 
       case 2:
-        //for (unsigned int c=0; c<n_components; c++)
           {
           	constexpr int fe_deg_x2 = get_FEData<FEType,dim,0,base_fe_degree, c>::fe_degree;
           	constexpr int fe_deg_y2 = get_FEData<FEType,dim,1,base_fe_degree, c>::fe_degree;
@@ -1206,8 +1191,7 @@ namespace internal
         break;
 
       case 3:
-        //for (unsigned int c=0; c<n_components; c++)
-         // {
+          {
             if (integrate_values == true)
               {
                 // val
@@ -1238,14 +1222,12 @@ namespace internal
                 eval.template apply<1,false,false> (shape_info.shape_values_vec[c][1],temp1, temp2);
                 eval.template apply<2,false,true> (shape_info.shape_gradients_vec[c][2],temp2, values_dofs[c]);
               }
-         // }
+          }
         break;
 
       default:
         AssertThrow(false, ExcNotImplemented());
       }
-    }//end of for loop
-
   }
 
 } // end of namespace internal

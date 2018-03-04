@@ -416,7 +416,6 @@ protected:
    * The polynomial space. Its type is given by the template parameter
    * PolynomialType.
    */
-  public: //FIXME remove as added for debugging
   PolynomialType poly_space;
 protected:
   /**
@@ -430,9 +429,7 @@ protected:
    * class to allow for reorganization of the basis functions. If it is left
    * empty, the basis in #poly_space is used.
    */
-public: //FIXME revert, only for debugging
   FullMatrix<double> inverse_node_matrix;
-protected:
 
   /**
    * A mutex to be used to guard access to the variables below.
